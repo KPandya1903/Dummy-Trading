@@ -1,0 +1,218 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enums ────────────────────────────────────────────────
+
+enum TradeSide {
+  BUY
+  SELL
+}
+
+enum GroupRole {
+  OWNER
+  MEMBER
+}
+
+enum OrderType {
+  MARKET
+  LIMIT
+  STOP
+}
+
+enum OrderStatus {
+  PENDING
+  FILLED
+  CANCELLED
+}
+
+enum Badge {
+  FIRST_TRADE
+  DIVERSIFIER
+  TEN_PERCENT
+  BEAT_MARKET
+  DAY_TRADER
+  DIAMOND_HANDS
+  FULL_PORTFOLIO
+}
+
+enum ResearchStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+// ── Models ───────────────────────────────────────────────
+
+model User {
+  id           Int               @id @default(autoincrement())
+  email        String            @unique
+  passwordHash String
+  portfolios   Portfolio[]
+  watchlist    WatchlistItem[]
+  memberships  GroupMembership[]
+  badges       UserBadge[]
+  createdAt    DateTime          @default(now())
+}
+
+model UserBadge {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge      Badge
+  unlockedAt DateTime @default(now())
+
+  @@unique([userId, badge])
+}
+
+model Portfolio {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  startingCash Float    @default(100000)
+  groupId      Int?
+  group        Group?   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  trades         Trade[]
+  pendingOrders  PendingOrder[]
+  createdAt      DateTime @default(now())
+
+  @@unique([groupId, userId])
+  @@index([userId])
+  @@index([groupId])
+}
+
+model Trade {
+  id          Int       @id @default(autoincrement())
+  portfolioId Int
+  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  ticker      String
+  side        TradeSide
+  quantity    Int
+  price       Float
+  executedAt  DateTime  @default(now())
+  note        String?
+  reviewNote  String?
+  reviewedAt  DateTime?
+
+  @@index([portfolioId])
+  @@index([ticker])
+}
+
+model WatchlistItem {
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ticker         String
+  alertAbove     Float?
+  alertBelow     Float?
+  alertTriggered Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@unique([userId, ticker])
+  @@index([userId])
+}
+
+model PendingOrder {
+  id          Int         @id @default(autoincrement())
+  portfolioId Int
+  portfolio   Portfolio   @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  ticker      String
+  side        TradeSide
+  quantity    Int
+  orderType   OrderType
+  targetPrice Float
+  status      OrderStatus @default(PENDING)
+  createdAt   DateTime    @default(now())
+  filledAt    DateTime?
+
+  @@index([status])
+  @@index([portfolioId])
+}
+
+model Group {
+  id               Int              @id @default(autoincrement())
+  name             String
+  startingCash     Float
+  joinCode         String           @unique
+  startDate        DateTime?
+  endDate          DateTime?
+  maxTradesPerDay  Int?
+  allowedTickers   String?
+  members          GroupMembership[]
+  portfolios       Portfolio[]
+  createdAt        DateTime         @default(now())
+}
+
+model GroupMembership {
+  id       Int       @id @default(autoincrement())
+  groupId  Int
+  group    Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId   Int
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     GroupRole @default(MEMBER)
+  joinedAt DateTime  @default(now())
+
+  @@unique([groupId, userId])
+  @@index([groupId])
+  @@index([userId])
+}
+
+model Research {
+  id               Int                 @id @default(autoincrement())
+  ticker           String
+  companyName      String
+  sector           String?
+  status           ResearchStatus      @default(PENDING)
+  progress         Int                 @default(0)
+  currentStep      String?
+  priceAtResearch  Float?
+  marketCap        Float?
+  executiveSummary String?
+  overallSentiment String?
+  confidenceScore  Float?
+  priceHistory     String?
+  errorMessage     String?
+  totalSteps       Int                 @default(12)
+  completedSteps   Int                 @default(0)
+  narrativeCount   Int                 @default(0)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  narratives       ResearchNarrative[]
+
+  @@index([ticker])
+  @@index([ticker, createdAt])
+}
+
+model ResearchNarrative {
+  id               Int       @id @default(autoincrement())
+  researchId       Int
+  research         Research  @relation(fields: [researchId], references: [id], onDelete: Cascade)
+  dimension        String
+  title            String
+  subtitle         String?
+  sentiment        String
+  impactScore      Float?
+  summary          String
+  fullAnalysis     String
+  eventDate        DateTime?
+  priceBeforeEvent Float?
+  priceAfterEvent  Float?
+  priceChangePct   Float?
+  correlationNote  String?
+  priceWindow      String?
+  sources          String
+  contentHash      String
+  sortOrder        Int       @default(0)
+  createdAt        DateTime  @default(now())
+
+  @@index([researchId])
+  @@unique([researchId, contentHash])
+}
