@@ -12,10 +12,21 @@ import type {
 import { buildFeatureMatrix } from './featureEngineering.js';
 import { denormalizePrice, getNextBusinessDay, round2 } from './utils.js';
 import { runExponentialSmoothing } from './baseLearners/exponentialSmoothing.js';
-import { runEnhancedLstm } from './baseLearners/enhancedLstm.js';
-import { runGruModel } from './baseLearners/gruModel.js';
-import { runFeatureCombiner } from './baseLearners/featureCombiner.js';
-import { trainMetaLearner } from './metaLearner.js';
+
+// TF-based models are lazily imported to avoid loading TensorFlow (~272MB)
+// on serverless cold starts when only Holt-Winters is needed.
+async function lazyLstm(matrix: any, horizon: number) {
+  const { runEnhancedLstm } = await import('./baseLearners/enhancedLstm.js');
+  return runEnhancedLstm(matrix, horizon);
+}
+async function lazyGru(matrix: any, horizon: number) {
+  const { runGruModel } = await import('./baseLearners/gruModel.js');
+  return runGruModel(matrix, horizon);
+}
+async function lazyFeatureCombiner(matrix: any, horizon: number) {
+  const { runFeatureCombiner } = await import('./baseLearners/featureCombiner.js');
+  return runFeatureCombiner(matrix, horizon);
+}
 import { computeBacktestMetrics } from './backtesting.js';
 
 const BASE_LEARNER_TIMEOUT = 30_000; // 30s per model
@@ -91,13 +102,13 @@ export async function runEnsemble(
       ? Promise.resolve().then(() => runExponentialSmoothing(matrix, horizon))
       : Promise.resolve(emptyBL('holtWinters')),
     enabled.lstm
-      ? withTimeout(runEnhancedLstm(matrix, horizon), BASE_LEARNER_TIMEOUT, emptyBL('biLstm'))
+      ? withTimeout(lazyLstm(matrix, horizon), BASE_LEARNER_TIMEOUT, emptyBL('biLstm'))
       : Promise.resolve(emptyBL('biLstm')),
     enabled.gru
-      ? withTimeout(runGruModel(matrix, horizon), BASE_LEARNER_TIMEOUT, emptyBL('gru'))
+      ? withTimeout(lazyGru(matrix, horizon), BASE_LEARNER_TIMEOUT, emptyBL('gru'))
       : Promise.resolve(emptyBL('gru')),
     enabled.dense
-      ? withTimeout(runFeatureCombiner(matrix, horizon), BASE_LEARNER_TIMEOUT, emptyBL('featureCombiner'))
+      ? withTimeout(lazyFeatureCombiner(matrix, horizon), BASE_LEARNER_TIMEOUT, emptyBL('featureCombiner'))
       : Promise.resolve(emptyBL('featureCombiner')),
   ]);
 
@@ -106,7 +117,24 @@ export async function runEnsemble(
 
   // ── Step 3: Meta-Learner ─────────────────────────────
   const baseLearners = [hw, lstm, gru, fc];
-  const metaResult = await trainMetaLearner(baseLearners, matrix, horizon, config?.customWeights);
+
+  // Count how many models are actually enabled (not just fallback stubs)
+  const enabledCount = [enabled.holtWinters, enabled.lstm, enabled.gru, enabled.dense]
+    .filter(Boolean).length;
+
+  // If only one model is active, skip meta-learner (avoids loading TensorFlow)
+  let metaResult;
+  if (enabledCount <= 1) {
+    const active = baseLearners.find((bl) => bl.metrics.trainLoss !== -1) ?? hw;
+    metaResult = {
+      combinedPredictions: active.rawPredictions,
+      combinedUncertainties: active.uncertainties,
+      weights: { [active.name]: 1 } as Record<string, number>,
+    };
+  } else {
+    const { trainMetaLearner } = await import('./metaLearner.js');
+    metaResult = await trainMetaLearner(baseLearners, matrix, horizon, config?.customWeights);
+  }
 
   console.log(`[Ensemble] Meta-learner weights:`, metaResult.weights);
 

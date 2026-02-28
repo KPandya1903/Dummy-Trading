@@ -19,6 +19,13 @@ const yf = new YahooFinance();
 const prisma = new PrismaClient();
 const router = Router();
 
+// On Vercel serverless, disable TF models to stay within 60s timeout.
+// Holt-Winters + Monte Carlo run in <2s and provide solid predictions.
+const IS_SERVERLESS = !!process.env.VERCEL;
+const SERVERLESS_CONFIG: EnsembleConfig = {
+  enabledModels: { holtWinters: true, lstm: false, gru: false, dense: false },
+};
+
 // ── Sentiment mapping ────────────────────────────────────
 
 const SENTIMENT_MAP: Record<string, number> = {
@@ -144,7 +151,10 @@ router.get('/:ticker', async (req: Request, res: Response) => {
 
     // Run stacked ensemble (lazy-loaded to avoid TensorFlow cold start penalty)
     const runEnsemble = await getRunEnsemble();
-    const predictions = await runEnsemble(candles, horizon, sentimentScore);
+    const predictions = await runEnsemble(
+      candles, horizon, sentimentScore,
+      IS_SERVERLESS ? SERVERLESS_CONFIG : undefined,
+    );
 
     // Run Monte Carlo simulation (~10-30ms, synchronous)
     const historicalCloses = candles.map((c) => c.close);
@@ -189,9 +199,9 @@ router.post('/:ticker/custom', async (req: Request, res: Response) => {
 
     const enabledModels = {
       holtWinters: body.enabledModels?.holtWinters !== false,
-      lstm:        body.enabledModels?.lstm        !== false,
-      gru:         body.enabledModels?.gru         !== false,
-      dense:       body.enabledModels?.dense       !== false,
+      lstm:        IS_SERVERLESS ? false : body.enabledModels?.lstm        !== false,
+      gru:         IS_SERVERLESS ? false : body.enabledModels?.gru         !== false,
+      dense:       IS_SERVERLESS ? false : body.enabledModels?.dense       !== false,
     };
 
     // Fetch OHLCV candles
