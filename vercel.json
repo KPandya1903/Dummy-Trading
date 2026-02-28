@@ -9,13 +9,14 @@
   "functions": {
     "api/index.ts": {
       "memory": 1024,
-      "maxDuration": 60
+      "maxDuration": 60,
+      "includeFiles": "server/src/**"
     }
   },
   "crons": [
-    { "path": "/api/cron/check-orders", "schedule": "0 * * * *" },
-    { "path": "/api/cron/check-alerts", "schedule": "0 * * * *" },
-    { "path": "/api/cron/refresh-market-data", "schedule": "0 */6 * * *" },
-    { "path": "/api/cron/warm-market-caps", "schedule": "0 6 * * *" }
+    { "path": "/api/cron/check-orders", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/check-alerts", "schedule": "0 12 * * *" },
+    { "path": "/api/cron/refresh-market-data", "schedule": "0 14 * * *" },
+    { "path": "/api/cron/warm-market-caps", "schedule": "0 13 * * *" }
   ]
 }

@@ -7,7 +7,7 @@
     "dev:client": "npm run dev -w client",
     "build:server": "npm run build -w server",
     "build:client": "npm run build -w client",
-    "build:vercel": "cd server && npx prisma generate && npx prisma migrate deploy && tsc && cd ../client && npm run build",
+    "build:vercel": "cd server && npx prisma generate && tsc && cd ../client && npm run build",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write \"**/*.{ts,tsx,json,css,md}\""
   },
