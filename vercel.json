@@ -1,8 +1,8 @@
 {
-  "buildCommand": "npm run build:vercel",
+  "buildCommand": "cd server && npx prisma generate && npx tsc && cd .. && cd client && npx vite build",
   "outputDirectory": "client/dist",
-  "installCommand": "npm install",
-  "framework": "vite",
+  "installCommand": "npm install --workspaces",
+  "framework": null,
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" }
   ],
