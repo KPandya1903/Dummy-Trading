@@ -1,0 +1,21 @@
+{
+  "buildCommand": "npm run build:vercel",
+  "outputDirectory": "client/dist",
+  "installCommand": "npm install",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" }
+  ],
+  "functions": {
+    "api/index.ts": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  },
+  "crons": [
+    { "path": "/api/cron/check-orders", "schedule": "0 * * * *" },
+    { "path": "/api/cron/check-alerts", "schedule": "0 * * * *" },
+    { "path": "/api/cron/refresh-market-data", "schedule": "0 */6 * * *" },
+    { "path": "/api/cron/warm-market-caps", "schedule": "0 6 * * *" }
+  ]
+}

@@ -7,6 +7,7 @@ import type {
   ForecastPoint,
   BaseLearnerOutput,
   PredictionResult,
+  EnsembleConfig,
 } from './types.js';
 import { buildFeatureMatrix } from './featureEngineering.js';
 import { denormalizePrice, getNextBusinessDay, round2 } from './utils.js';
@@ -46,6 +47,7 @@ export async function runEnsemble(
   candles: OHLCV[],
   horizon: number,
   sentimentScore: number = 0.5,
+  config?: EnsembleConfig,
 ): Promise<PredictionResult> {
   console.log(`[Ensemble] Starting prediction for ${candles.length} candles, horizon=${horizon}`);
   const startTime = Date.now();
@@ -76,12 +78,27 @@ export async function runEnsemble(
     metrics: { trainLoss: -1 },
   });
 
+  // Resolve enabled flags — default all true for backwards compatibility
+  const enabled = {
+    holtWinters: config?.enabledModels?.holtWinters ?? true,
+    lstm:        config?.enabledModels?.lstm        ?? true,
+    gru:         config?.enabledModels?.gru         ?? true,
+    dense:       config?.enabledModels?.dense       ?? true,
+  };
+
   const [hw, lstm, gru, fc] = await Promise.all([
-    // Holt-Winters is synchronous but we wrap it
-    Promise.resolve().then(() => runExponentialSmoothing(matrix, horizon)),
-    withTimeout(runEnhancedLstm(matrix, horizon), BASE_LEARNER_TIMEOUT, emptyBL('biLstm')),
-    withTimeout(runGruModel(matrix, horizon), BASE_LEARNER_TIMEOUT, emptyBL('gru')),
-    withTimeout(runFeatureCombiner(matrix, horizon), BASE_LEARNER_TIMEOUT, emptyBL('featureCombiner')),
+    enabled.holtWinters
+      ? Promise.resolve().then(() => runExponentialSmoothing(matrix, horizon))
+      : Promise.resolve(emptyBL('holtWinters')),
+    enabled.lstm
+      ? withTimeout(runEnhancedLstm(matrix, horizon), BASE_LEARNER_TIMEOUT, emptyBL('biLstm'))
+      : Promise.resolve(emptyBL('biLstm')),
+    enabled.gru
+      ? withTimeout(runGruModel(matrix, horizon), BASE_LEARNER_TIMEOUT, emptyBL('gru'))
+      : Promise.resolve(emptyBL('gru')),
+    enabled.dense
+      ? withTimeout(runFeatureCombiner(matrix, horizon), BASE_LEARNER_TIMEOUT, emptyBL('featureCombiner'))
+      : Promise.resolve(emptyBL('featureCombiner')),
   ]);
 
   console.log(`[Ensemble] Base learners done in ${Date.now() - startTime}ms`);
@@ -89,7 +106,7 @@ export async function runEnsemble(
 
   // ── Step 3: Meta-Learner ─────────────────────────────
   const baseLearners = [hw, lstm, gru, fc];
-  const metaResult = await trainMetaLearner(baseLearners, matrix, horizon);
+  const metaResult = await trainMetaLearner(baseLearners, matrix, horizon, config?.customWeights);
 
   console.log(`[Ensemble] Meta-learner weights:`, metaResult.weights);
 

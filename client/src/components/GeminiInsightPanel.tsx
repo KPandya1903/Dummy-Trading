@@ -88,7 +88,7 @@ export default function GeminiInsightPanel({
     <Paper
       variant="outlined"
       sx={{
-        p: 2,
+        p: 3,
         mt: 2,
         background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
         border: '1px solid rgba(201,168,76,0.15)',

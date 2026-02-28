@@ -67,7 +67,7 @@ export default function MarketClassifierTiles() {
   const { data, loading } = useApi<{ classifiers: Classifier[] }>(
     '/market/classifiers',
     undefined,
-    120_000,
+    5_000,
   );
 
   if (loading && !data) {

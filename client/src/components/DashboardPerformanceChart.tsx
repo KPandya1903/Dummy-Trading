@@ -25,6 +25,7 @@ import {
   CHART_TOOLTIP_STYLE,
   CHART_GRID_COLOR,
   CHART_AXIS_COLOR,
+  getChartLineColor,
 } from '../theme';
 
 interface HistoryResponse {
@@ -276,7 +277,7 @@ export default function DashboardPerformanceChart({
             type="monotone"
             dataKey="totalValue"
             name="Portfolio"
-            stroke={CHART_COLORS[0]}
+            stroke={finalData.length >= 2 ? getChartLineColor(finalData[0].totalValue, finalData[finalData.length - 1].totalValue) : CHART_COLORS[0]}
             strokeWidth={2}
             dot={displayData.length < 30 ? { r: 2 } : false}
             activeDot={{ r: 4 }}

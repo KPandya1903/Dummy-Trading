@@ -20,7 +20,9 @@ import {
 } from 'recharts';
 import useApi from '../hooks/useApi';
 import StockNewsPanel from '../components/StockNewsPanel';
-import { CHART_COLORS, CHART_TOOLTIP_STYLE, CHART_GRID_COLOR, CHART_AXIS_COLOR } from '../theme';
+import { CHART_COLORS, CHART_TOOLTIP_STYLE, CHART_GRID_COLOR, CHART_AXIS_COLOR, getChartLineColor } from '../theme';
+import AnimatedNumber from '../components/AnimatedNumber';
+import FactorScorecard from '../components/FactorScorecard';
 
 interface QuoteDetail {
   ticker: string;
@@ -49,7 +51,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
     <Paper
       variant="outlined"
       sx={{
-        p: 1.5,
+        p: 2.5,
         textAlign: 'center',
         background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
         border: '1px solid rgba(201,168,76,0.1)',
@@ -112,7 +114,7 @@ export default function StockDetailPage() {
       </Box>
 
       <Box display="flex" alignItems="baseline" gap={2} mb={3}>
-        <Typography variant="h4">${fmt(quote.price)}</Typography>
+        <AnimatedNumber value={quote.price} prefix="$" variant="h4" />
         <Chip
           label={`${isPositive ? '+' : ''}${fmt(quote.change)} (${isPositive ? '+' : ''}${fmt(quote.changePct)}%)`}
           color={isPositive ? 'success' : 'error'}
@@ -121,7 +123,7 @@ export default function StockDetailPage() {
       </Box>
 
       {/* ── Stats grid ──────────────────────────────────── */}
-      <Grid container spacing={2} sx={{ mb: 4 }}>
+      <Grid container spacing={2.5} sx={{ mb: 4 }}>
         <Grid item xs={6} sm={3}>
           <StatCard label="Market Cap" value={quote.marketCap !== null ? `$${fmt(quote.marketCap)}B` : 'N/A'} />
         </Grid>
@@ -147,6 +149,8 @@ export default function StockDetailPage() {
           <StatCard label="Industry" value={quote.industry || 'N/A'} />
         </Grid>
       </Grid>
+
+      <FactorScorecard ticker={quote.ticker} />
 
       {/* ── Price chart ─────────────────────────────────── */}
       {quote.history.length > 0 && (
@@ -174,7 +178,7 @@ export default function StockDetailPage() {
                 <Line
                   type="monotone"
                   dataKey="close"
-                  stroke={CHART_COLORS[0]}
+                  stroke={quote.history.length >= 2 ? getChartLineColor(quote.history[0].close, quote.history[quote.history.length - 1].close) : CHART_COLORS[0]}
                   dot={false}
                   strokeWidth={2}
                 />

@@ -60,7 +60,7 @@ const theme = createTheme({
     caption: { letterSpacing: '0.02em' },
   },
 
-  shape: { borderRadius: 8 },
+  shape: { borderRadius: 12 },
 
   components: {
     MuiCssBaseline: {
@@ -152,6 +152,64 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderColor: dividerColor,
+          paddingTop: 12,
+          paddingBottom: 12,
+        },
+        sizeSmall: {
+          paddingTop: 10,
+          paddingBottom: 10,
+        },
+      },
+    },
+
+    MuiMenu: {
+      styleOverrides: {
+        paper: {
+          backgroundImage: 'none',
+          backgroundColor: surface.paper,
+          border: `1px solid ${borderSubtle}`,
+        },
+      },
+    },
+
+    MuiMenuItem: {
+      styleOverrides: {
+        root: {
+          fontSize: '0.875rem',
+          '&:hover': {
+            backgroundColor: 'rgba(201,168,76,0.08)',
+          },
+        },
+      },
+    },
+
+    MuiCardContent: {
+      styleOverrides: {
+        root: {
+          padding: '24px',
+          '&:last-child': {
+            paddingBottom: '24px',
+          },
+        },
+      },
+    },
+
+    MuiStepIcon: {
+      styleOverrides: {
+        root: {
+          color: 'rgba(201,168,76,0.3)',
+          '&.Mui-active': { color: gold.main },
+          '&.Mui-completed': { color: gold.main },
+        },
+      },
+    },
+
+    MuiStepLabel: {
+      styleOverrides: {
+        label: {
+          color: '#7a8ba5',
+          '&.Mui-active': { color: '#e8eaf0' },
+          '&.Mui-completed': { color: gold.main },
         },
       },
     },
@@ -241,10 +299,17 @@ const theme = createTheme({
 export const CHART_TOOLTIP_STYLE = {
   backgroundColor: surface.paper,
   border: '1px solid rgba(201,168,76,0.15)',
-  borderRadius: 8,
+  borderRadius: 12,
 };
 
 export const CHART_GRID_COLOR = 'rgba(255,255,255,0.06)';
 export const CHART_AXIS_COLOR = '#7a8ba5';
+
+// ── Gain/loss chart line color utility ──────────────────────
+export function getChartLineColor(startValue: number, endValue: number): string {
+  if (endValue > startValue) return '#00c853';
+  if (endValue < startValue) return '#ff5252';
+  return '#c9a84c';
+}
 
 export default theme;

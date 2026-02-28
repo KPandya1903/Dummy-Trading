@@ -68,3 +68,24 @@ export interface PredictionResult {
     backtestMetrics: BacktestMetrics;
   };
 }
+
+// ── Model Builder Config ──────────────────────────────────
+
+export interface EnabledModels {
+  holtWinters?: boolean;
+  lstm?: boolean;
+  gru?: boolean;
+  dense?: boolean;
+}
+
+export interface CustomWeights {
+  holtWinters: number;
+  lstm: number;
+  gru: number;
+  dense: number;
+}
+
+export interface EnsembleConfig {
+  enabledModels?: EnabledModels;
+  customWeights?: CustomWeights;
+}

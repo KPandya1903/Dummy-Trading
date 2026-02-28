@@ -11,7 +11,7 @@ import {
   Legend,
 } from 'recharts';
 import useApi from '../hooks/useApi';
-import { CHART_COLORS, CHART_TOOLTIP_STYLE, CHART_GRID_COLOR, CHART_AXIS_COLOR } from '../theme';
+import { CHART_COLORS, CHART_TOOLTIP_STYLE, CHART_GRID_COLOR, CHART_AXIS_COLOR, getChartLineColor } from '../theme';
 
 interface HistoryPoint {
   date: string;
@@ -95,7 +95,7 @@ export default function PortfolioChart({ portfolioId }: { portfolioId: number })
             type="monotone"
             dataKey="totalValue"
             name="Portfolio"
-            stroke={CHART_COLORS[0]}
+            stroke={chartData.length >= 2 ? getChartLineColor(chartData[0].totalValue, chartData[chartData.length - 1].totalValue) : CHART_COLORS[0]}
             strokeWidth={2}
             dot={{ r: 3 }}
             activeDot={{ r: 5 }}

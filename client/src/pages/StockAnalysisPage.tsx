@@ -70,7 +70,7 @@ const PERIODS = ['3M', '6M', '1Y', '2Y', '5Y'];
 const INDICATORS = ['rsi', 'macd', 'bollinger', 'sma', 'ema'];
 
 const panelSx = {
-  p: 3,
+  p: 4,
   background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
   border: '1px solid rgba(201,168,76,0.1)',
 };

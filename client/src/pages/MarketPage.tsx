@@ -39,6 +39,7 @@ import useApi from '../hooks/useApi';
 import MarketHeatmap from '../components/MarketHeatmap';
 import SP500IndexChart from '../components/SP500IndexChart';
 import MarketClassifierTiles from '../components/MarketClassifierTiles';
+import MarketRegimePanel from '../components/MarketRegimePanel';
 
 interface MarketEntry {
   ticker: string;
@@ -113,14 +114,14 @@ export default function MarketPage() {
   const { data: response, loading, error } = useApi<MarketResponse>(
     '/market',
     apiParams,
-    60_000,
+    5_000,
   );
 
   // Heatmap uses /market/top endpoint
   const { data: heatmapEntries } = useApi<MarketEntry[]>(
     view === 'heatmap' ? '/market/top' : null,
     { by: 'marketCap', limit: 30 },
-    60_000,
+    5_000,
   );
 
   const handleSort = (field: SortField) => {
@@ -154,11 +155,11 @@ export default function MarketPage() {
       <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
         <Typography variant="body2" color="text.secondary">
           {marketState === 'REGULAR'
-            ? 'Market is open — prices update every 2 min (15-min delay).'
+            ? 'Market is open — prices update every 5 sec (15-min delay).'
             : marketState === 'PRE'
-              ? 'Pre-market session — prices update every 2 min.'
+              ? 'Pre-market session — prices update every 5 sec.'
               : marketState === 'POST'
-                ? 'After-hours session — prices update every 2 min.'
+                ? 'After-hours session — prices update every 5 sec.'
                 : 'Market is closed — showing last closing prices.'}
           {pagination && ` Showing ${pagination.total} stocks.`}
         </Typography>
@@ -181,7 +182,7 @@ export default function MarketPage() {
       <Paper
         variant="outlined"
         sx={{
-          p: 3,
+          p: 4,
           mb: 3,
           background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
           border: '1px solid rgba(201,168,76,0.1)',
@@ -189,6 +190,9 @@ export default function MarketPage() {
       >
         <SP500IndexChart />
       </Paper>
+
+      {/* Market Regime */}
+      <MarketRegimePanel />
 
       {/* Market Classifier Tiles */}
       <Box mb={3}>

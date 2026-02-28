@@ -21,6 +21,7 @@ import {
   CHART_TOOLTIP_STYLE,
   CHART_GRID_COLOR,
   CHART_AXIS_COLOR,
+  getChartLineColor,
 } from '../theme';
 
 interface SP500ChartData {
@@ -36,7 +37,7 @@ export default function SP500IndexChart() {
   const { data, loading } = useApi<SP500ChartData>(
     '/market/sp500-chart',
     { period },
-    300_000,
+    5_000,
   );
 
   const points = data?.points ?? [];
@@ -88,8 +89,8 @@ export default function SP500IndexChart() {
           <AreaChart data={points}>
             <defs>
               <linearGradient id="sp500Gradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={CHART_COLORS[0]} stopOpacity={0.3} />
-                <stop offset="95%" stopColor={CHART_COLORS[0]} stopOpacity={0} />
+                <stop offset="5%" stopColor={getChartLineColor(first, latest)} stopOpacity={0.3} />
+                <stop offset="95%" stopColor={getChartLineColor(first, latest)} stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_COLOR} />
@@ -117,7 +118,7 @@ export default function SP500IndexChart() {
             <Area
               type="monotone"
               dataKey="value"
-              stroke={CHART_COLORS[0]}
+              stroke={getChartLineColor(first, latest)}
               strokeWidth={2}
               fill="url(#sp500Gradient)"
             />

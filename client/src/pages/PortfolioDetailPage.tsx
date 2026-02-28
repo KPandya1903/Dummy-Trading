@@ -23,6 +23,7 @@ import TradeForm from '../components/TradeForm';
 import PortfolioChart from '../components/PortfolioChart';
 import DiversificationChart from '../components/DiversificationChart';
 import SectorChart from '../components/SectorChart';
+import PortfolioRiskMetrics from '../components/PortfolioRiskMetrics';
 
 interface Position {
   ticker: string;
@@ -123,14 +124,14 @@ export default function PortfolioDetailPage() {
       {/* ── Summary stats ─────────────────────────────── */}
       <Stack
         direction="row"
-        spacing={3}
+        spacing={3.5}
         mb={4}
         flexWrap="wrap"
         useFlexGap
         sx={{
           '& > *': {
             minWidth: 130,
-            p: 1.5,
+            p: 2.5,
             border: 1,
             borderColor: 'divider',
             borderRadius: 1,
@@ -165,6 +166,8 @@ export default function PortfolioDetailPage() {
 
       {/* ── Performance chart ─────────────────────────── */}
       <PortfolioChart portfolioId={summary.portfolioId} />
+
+      <PortfolioRiskMetrics portfolioId={summary.portfolioId} />
 
       {/* ── Positions table ───────────────────────────── */}
       <Typography variant="h6" gutterBottom>

@@ -4,7 +4,7 @@
 // Dense network or learned weighted average fallback
 
 import * as tf from '@tensorflow/tfjs';
-import type { BaseLearnerOutput, FeatureMatrix } from './types.js';
+import type { BaseLearnerOutput, FeatureMatrix, CustomWeights } from './types.js';
 import { round2 } from './utils.js';
 
 const META_FEATURES = 13; // 4 preds + 4 uncertainties + 5 context
@@ -46,7 +46,13 @@ export async function trainMetaLearner(
   baseLearners: BaseLearnerOutput[],
   matrix: FeatureMatrix,
   horizon: number,
+  customWeights?: CustomWeights,
 ): Promise<MetaLearnerResult> {
+  // Custom weights bypass — skip meta-learner training entirely
+  if (customWeights) {
+    return computeCustomWeightedAverage(baseLearners, horizon, customWeights);
+  }
+
   // Ensure we have exactly 4 base learners
   while (baseLearners.length < 4) {
     const lastNorm = matrix.rows[matrix.rows.length - 1].features[0];
@@ -203,6 +209,42 @@ async function extractWeights(
   }
 
   return weights;
+}
+
+// ── Custom Weights Bypass ─────────────────────────────────
+// Skips TensorFlow training; uses caller-supplied normalized weights directly.
+
+function computeCustomWeightedAverage(
+  baseLearners: BaseLearnerOutput[],
+  horizon: number,
+  weights: CustomWeights,
+): MetaLearnerResult {
+  // Slot order matches ensemble.ts: [holtWinters, lstm, gru, dense]
+  const slotWeights = [weights.holtWinters, weights.lstm, weights.gru, weights.dense];
+
+  const combinedPredictions: number[] = [];
+  const combinedUncertainties: number[] = [];
+
+  for (let step = 0; step < horizon; step++) {
+    let pred = 0;
+    let uncert = 0;
+    for (let i = 0; i < baseLearners.length; i++) {
+      pred   += slotWeights[i] * (baseLearners[i].rawPredictions[step] ?? 0.5);
+      uncert += slotWeights[i] * (baseLearners[i].uncertainties[step]  ?? 0.1);
+    }
+    combinedPredictions.push(pred);
+    combinedUncertainties.push(uncert);
+  }
+
+  // Key names match existing convention for response consistency
+  const weightMap: Record<string, number> = {
+    holtWinters:     round2(weights.holtWinters),
+    biLstm:          round2(weights.lstm),
+    gru:             round2(weights.gru),
+    featureCombiner: round2(weights.dense),
+  };
+
+  return { combinedPredictions, combinedUncertainties, weights: weightMap };
 }
 
 // ── Learned Weighted Average Fallback ────────────────────

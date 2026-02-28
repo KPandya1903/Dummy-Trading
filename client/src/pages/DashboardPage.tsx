@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   Typography,
@@ -17,12 +18,17 @@ import {
   Divider,
   Tooltip,
   Stack,
+  Collapse,
+  IconButton,
+  Fade,
 } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import useApi from '../hooks/useApi';
 import DashboardPerformanceChart from '../components/DashboardPerformanceChart';
+import AnimatedNumber from '../components/AnimatedNumber';
 
 interface DashboardData {
   totalValue: number;
@@ -74,7 +80,7 @@ function fmt(n: number): string {
 }
 
 const panelSx = {
-  p: 3,
+  p: 4,
   background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
   border: '1px solid rgba(201,168,76,0.1)',
   height: '100%',
@@ -86,12 +92,59 @@ const sectionHeaderSx = {
   letterSpacing: '0.1em',
   textTransform: 'uppercase' as const,
   color: '#7a8ba5',
-  mb: 2,
+  mb: 2.5,
 };
+
+function CollapsibleSection({
+  title,
+  expanded,
+  onToggle,
+  children,
+}: {
+  title: string;
+  expanded: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Paper variant="outlined" sx={{ ...panelSx, height: 'auto' }}>
+      <Box
+        display="flex"
+        alignItems="center"
+        justifyContent="space-between"
+        onClick={onToggle}
+        sx={{ cursor: 'pointer', userSelect: 'none' }}
+      >
+        <Typography sx={{ ...sectionHeaderSx, mb: 0 }}>{title}</Typography>
+        <IconButton size="small">
+          <ExpandMoreIcon
+            sx={{
+              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.3s ease',
+              color: 'text.secondary',
+            }}
+          />
+        </IconButton>
+      </Box>
+      <Collapse in={expanded} timeout={350}>
+        <Box sx={{ mt: 2 }}>{children}</Box>
+      </Collapse>
+    </Paper>
+  );
+}
 
 export default function DashboardPage() {
   const { data, loading, error } = useApi<DashboardData>('/dashboard');
   const navigate = useNavigate();
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    gameInfo: false,
+    topMovers: true,
+    holdings: true,
+  });
+
+  const toggleSection = (key: string) => {
+    setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
   if (loading) {
     return (
@@ -110,7 +163,8 @@ export default function DashboardPage() {
   const portfolioIds = data.portfolios.map((p) => p.id);
 
   return (
-    <Grid container spacing={3}>
+    <Fade in timeout={400}>
+    <Grid container spacing={3.5}>
       {/* ── OVERVIEW Panel ──────────────────────────────── */}
       <Grid item xs={12} md={5}>
         <Paper variant="outlined" sx={panelSx}>
@@ -119,9 +173,13 @@ export default function DashboardPage() {
           <Typography variant="caption" color="text.secondary">
             ACCOUNT VALUE
           </Typography>
-          <Typography variant="h3" fontWeight={700} sx={{ mb: 0.5 }}>
-            ${fmt(data.totalValue)}
-          </Typography>
+          <AnimatedNumber
+            value={data.totalValue}
+            prefix="$"
+            variant="h3"
+            fontWeight={700}
+            sx={{ mb: 0.5 }}
+          />
 
           {/* Today's Change */}
           <Box display="flex" alignItems="baseline" gap={1} mb={2}>
@@ -170,9 +228,11 @@ export default function DashboardPage() {
 
       {/* ── GAME INFO Panel ─────────────────────────────── */}
       <Grid item xs={12} md={5}>
-        <Paper variant="outlined" sx={panelSx}>
-          <Typography sx={sectionHeaderSx}>Game Info</Typography>
-
+        <CollapsibleSection
+          title="Game Info"
+          expanded={expandedSections.gameInfo}
+          onToggle={() => toggleSection('gameInfo')}
+        >
           <Box display="flex" alignItems="baseline" gap={1} mb={0.5}>
             <Typography variant="caption" color="text.secondary">
               CURRENT RANK
@@ -224,13 +284,16 @@ export default function DashboardPage() {
           >
             FULL LEADERBOARD
           </Button>
-        </Paper>
+        </CollapsibleSection>
       </Grid>
 
       {/* ── TOP MOVERS Panel ────────────────────────────── */}
       <Grid item xs={12} md={7}>
-        <Paper variant="outlined" sx={panelSx}>
-          <Typography sx={sectionHeaderSx}>Top Movers</Typography>
+        <CollapsibleSection
+          title="Top Movers"
+          expanded={expandedSections.topMovers}
+          onToggle={() => toggleSection('topMovers')}
+        >
           <Grid container spacing={2}>
             <Grid item xs={6}>
               <Typography
@@ -307,43 +370,37 @@ export default function DashboardPage() {
               )}
             </Grid>
           </Grid>
-        </Paper>
+        </CollapsibleSection>
       </Grid>
 
       {/* ── HOLDINGS section ────────────────────────────── */}
       <Grid item xs={12}>
-        <Paper variant="outlined" sx={{ ...panelSx, height: 'auto' }}>
-          <Box
-            display="flex"
-            alignItems="center"
-            justifyContent="space-between"
-            mb={2}
-          >
-            <Typography sx={sectionHeaderSx} mb={0}>
-              Holdings
+        <CollapsibleSection
+          title="Holdings"
+          expanded={expandedSections.holdings}
+          onToggle={() => toggleSection('holdings')}
+        >
+          <Box display="flex" alignItems="center" gap={1} mb={2}>
+            <Box
+              sx={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                bgcolor:
+                  data.marketStatus === 'REGULAR'
+                    ? 'success.main'
+                    : 'error.main',
+              }}
+            />
+            <Typography variant="caption" color="text.secondary">
+              {data.marketStatus === 'REGULAR'
+                ? 'Market is open'
+                : data.marketStatus === 'PRE'
+                  ? 'Pre-market session'
+                  : data.marketStatus === 'POST'
+                    ? 'After-hours session'
+                    : 'Market is closed'}
             </Typography>
-            <Box display="flex" alignItems="center" gap={1}>
-              <Box
-                sx={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  bgcolor:
-                    data.marketStatus === 'REGULAR'
-                      ? 'success.main'
-                      : 'error.main',
-                }}
-              />
-              <Typography variant="caption" color="text.secondary">
-                {data.marketStatus === 'REGULAR'
-                  ? 'Market is open'
-                  : data.marketStatus === 'PRE'
-                    ? 'Pre-market session'
-                    : data.marketStatus === 'POST'
-                      ? 'After-hours session'
-                      : 'Market is closed'}
-              </Typography>
-            </Box>
           </Box>
 
           <TableContainer>
@@ -471,9 +528,10 @@ export default function DashboardPage() {
               TRADE HISTORY
             </Button>
           </Box>
-        </Paper>
+        </CollapsibleSection>
       </Grid>
     </Grid>
+    </Fade>
   );
 }
 

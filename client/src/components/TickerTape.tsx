@@ -12,7 +12,7 @@ export default function TickerTape() {
   const { data: entries } = useApi<MarketEntry[]>(
     '/market/top',
     { by: 'changePct', limit: 15 },
-    60_000,
+    5_000,
   );
 
   if (!entries || entries.length === 0) return null;
