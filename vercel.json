@@ -4,7 +4,8 @@
   "installCommand": "npm install --workspaces",
   "framework": null,
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api" }
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ],
   "functions": {
     "api/index.ts": {
