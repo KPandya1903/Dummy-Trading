@@ -1,9 +1,11 @@
-// ── Ollama Local LLM Service ──────────────────────────────
-// Uses DeepSeek-R1 running locally via Ollama (http://localhost:11434)
-// Two-pass reasoning: Analyze → Refine for deeper, more nuanced narratives
+// ── Research LLM Service (powered by Groq) ────────────────
+// Drop-in replacement for the original Ollama/DeepSeek-R1 service.
+// Uses Groq's free API (llama-3.3-70b-versatile) for the same
+// two-pass reasoning pipeline: Analyze → Refine → Synthesize.
+// All exported function signatures are identical so researchService.ts
+// needs zero changes.
 
-const OLLAMA_BASE = process.env.OLLAMA_URL || 'http://localhost:11434';
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'deepseek-r1:8b';
+import { callGroq, isGroqConfigured } from './groqService.js';
 
 // ── Types ────────────────────────────────────────────────
 
@@ -30,65 +32,14 @@ export interface ParsedNarrative {
   sources: { title: string; url: string }[];
 }
 
-// ── Core Ollama Call ─────────────────────────────────────
-
-async function callOllama(
-  prompt: string,
-  system?: string,
-): Promise<string | null> {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 120_000); // 2 min timeout
-
-    const response = await fetch(`${OLLAMA_BASE}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: OLLAMA_MODEL,
-        prompt,
-        system: system || undefined,
-        stream: false,
-        options: {
-          temperature: 0.7,
-          num_predict: 2048,
-        },
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      console.error(`Ollama returned ${response.status}: ${await response.text()}`);
-      return null;
-    }
-
-    const json = await response.json() as { response?: string };
-    return json.response || null;
-  } catch (err: any) {
-    if (err.name === 'AbortError') {
-      console.error('Ollama call timed out');
-    } else {
-      console.error('Ollama unreachable:', err.message);
-    }
-    return null;
-  }
-}
-
-// ── Check if Ollama is Available ─────────────────────────
+// ── Availability Check ───────────────────────────────────
+// Kept as isOllamaAvailable() so researchService.ts needs zero changes.
 
 export async function isOllamaAvailable(): Promise<boolean> {
-  try {
-    const res = await fetch(`${OLLAMA_BASE}/api/tags`, {
-      signal: AbortSignal.timeout(3000),
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  return isGroqConfigured();
 }
 
-// ── Field Parsing (shared with response parsing) ─────────
+// ── Field Parsing ─────────────────────────────────────────
 
 function parseField(text: string, field: string): string {
   const regex = new RegExp(
@@ -104,34 +55,35 @@ function parseStructuredResponse(
   dimension: string,
   sources: { title: string; url: string }[],
 ): ParsedNarrative | null {
-  // Strip <think>...</think> blocks that DeepSeek-R1 produces
-  const cleaned = text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-
-  const title = parseField(cleaned, 'TITLE');
+  const title = parseField(text, 'TITLE');
   if (!title) return null;
 
-  const sentiment = parseField(cleaned, 'SENTIMENT').toLowerCase();
-  const impactStr = parseField(cleaned, 'IMPACT_SCORE');
-  const eventDateStr = parseField(cleaned, 'EVENT_DATE');
+  const sentiment = parseField(text, 'SENTIMENT').toLowerCase();
+  const impactStr = parseField(text, 'IMPACT_SCORE');
+  const eventDateStr = parseField(text, 'EVENT_DATE');
 
   return {
     dimension,
     title: title.slice(0, 80),
-    subtitle: parseField(cleaned, 'SUBTITLE') || title,
-    sentiment: ['positive', 'negative', 'neutral', 'mixed'].includes(sentiment) ? sentiment : 'neutral',
+    subtitle: parseField(text, 'SUBTITLE') || title,
+    sentiment: ['positive', 'negative', 'neutral', 'mixed'].includes(sentiment)
+      ? sentiment
+      : 'neutral',
     impactScore: parseFloat(impactStr) || 0,
-    summary: parseField(cleaned, 'SUMMARY') || '',
-    fullAnalysis: parseField(cleaned, 'FULL_ANALYSIS') || '',
+    summary: parseField(text, 'SUMMARY') || '',
+    fullAnalysis: parseField(text, 'FULL_ANALYSIS') || '',
     eventDate:
-      eventDateStr && eventDateStr !== 'unknown' && /^\d{4}-\d{2}-\d{2}$/.test(eventDateStr)
+      eventDateStr &&
+        eventDateStr !== 'unknown' &&
+        /^\d{4}-\d{2}-\d{2}$/.test(eventDateStr)
         ? eventDateStr
         : null,
-    correlationNote: parseField(cleaned, 'CORRELATION') || '',
+    correlationNote: parseField(text, 'CORRELATION') || '',
     sources,
   };
 }
 
-// ── Dimension Labels for Prompts ─────────────────────────
+// ── Dimension Labels ──────────────────────────────────────
 
 const DIMENSION_LABELS: Record<string, string> = {
   earnings: 'quarterly earnings, revenue, EPS, guidance, and financial results',
@@ -167,9 +119,9 @@ export async function analyzeArticles(
     )
     .join('\n\n');
 
-  const system = `You are a senior equity research analyst specializing in ${dimensionDesc}. You produce precise, data-driven analysis with specific numbers and dates. Your analysis considers both direct and indirect market effects.`;
+  const systemPrompt = `You are a senior equity research analyst specializing in ${dimensionDesc}. You produce precise, data-driven analysis with specific numbers and dates. Your analysis considers both direct and indirect market effects.`;
 
-  const prompt = `Analyze these recent articles about ${companyName} (${ticker}) regarding ${dimensionDesc}.
+  const userPrompt = `Analyze these recent articles about ${companyName} (${ticker}) regarding ${dimensionDesc}.
 
 ARTICLES:
 ${articleSummaries}
@@ -187,7 +139,14 @@ SUMMARY: [2-3 sentences describing the event and its significance for a preview 
 FULL_ANALYSIS: [4-6 detailed paragraphs analyzing the event, its context, market implications, indirect effects on related sectors/companies, and forward-looking assessment. Include specific numbers and data points from the articles.]
 CORRELATION: [One sentence describing how this event likely affected ${ticker}'s stock price]`;
 
-  const response = await callOllama(prompt, system);
+  const response = await callGroq(
+    [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    { temperature: 0.5, maxTokens: 2048 },
+  );
+
   if (!response) return null;
 
   return parseStructuredResponse(response, dimension, sources);
@@ -208,9 +167,9 @@ export async function refineAnalysis(
     .map((a) => `- "${a.title}" (${a.sourceName}): ${a.contentSnippet.slice(0, 200)}`)
     .join('\n');
 
-  const system = `You are a critical equity research reviewer. Your job is to improve an analyst's draft research narrative by deepening the reasoning, adding nuance, and considering indirect market effects. You must maintain the exact same output format.`;
+  const systemPrompt = `You are a critical equity research reviewer. Your job is to improve an analyst's draft research narrative by deepening the reasoning, adding nuance, and considering indirect market effects. You must maintain the exact same output format.`;
 
-  const prompt = `Review and improve this research narrative about ${ticker}'s ${dimensionDesc}.
+  const userPrompt = `Review and improve this research narrative about ${ticker}'s ${dimensionDesc}.
 
 ORIGINAL ANALYSIS:
 Title: ${initial.title}
@@ -243,8 +202,15 @@ SUMMARY: [Improved 2-3 sentence summary]
 FULL_ANALYSIS: [Improved 4-6 paragraphs with deeper reasoning, indirect effects, and forward-looking view]
 CORRELATION: [Improved price correlation explanation with expected magnitude]`;
 
-  const response = await callOllama(prompt, system);
-  if (!response) return initial; // Keep original if refinement fails
+  const response = await callGroq(
+    [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    { temperature: 0.4, maxTokens: 2048 },
+  );
+
+  if (!response) return initial;
 
   const refined = parseStructuredResponse(response, dimension, initial.sources);
   if (!refined || !refined.title || !refined.fullAnalysis) return initial;
@@ -271,9 +237,9 @@ export async function synthesizeExecutiveSummary(
     .map((n) => `[${n.dimension.replace(/_/g, ' ')}] ${n.title} (${n.sentiment}): ${n.summary}`)
     .join('\n');
 
-  const system = `You are a senior equity research director writing an executive summary that synthesizes findings across multiple research dimensions into a coherent investment thesis.`;
+  const systemPrompt = `You are a senior equity research director writing an executive summary that synthesizes findings across multiple research dimensions into a coherent investment thesis.`;
 
-  const prompt = `Write an executive summary for ${companyName} (${ticker}) based on these research findings:
+  const userPrompt = `Write an executive summary for ${companyName} (${ticker}) based on these research findings:
 
 ${narrativeSummaries}
 
@@ -287,25 +253,27 @@ At the END, on separate lines, provide:
 SENTIMENT: [exactly one of: bullish, bearish, neutral, mixed]
 CONFIDENCE: [a number from 0.0 to 1.0 indicating confidence in your assessment]`;
 
-  const response = await callOllama(prompt, system);
+  const response = await callGroq(
+    [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+    { temperature: 0.5, maxTokens: 1500 },
+  );
 
   if (!response) {
-    // Algorithmic fallback if Ollama is down
     return algorithmicSummary(narratives, ticker, companyName);
   }
 
-  // Strip <think>...</think> blocks
-  const cleaned = response.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
-
   let sentiment = 'neutral';
-  const sentimentMatch = cleaned.match(/SENTIMENT:\s*(bullish|bearish|neutral|mixed)/i);
+  const sentimentMatch = response.match(/SENTIMENT:\s*(bullish|bearish|neutral|mixed)/i);
   if (sentimentMatch) sentiment = sentimentMatch[1].toLowerCase();
 
   let confidence = 0.5;
-  const confMatch = cleaned.match(/CONFIDENCE:\s*([\d.]+)/);
+  const confMatch = response.match(/CONFIDENCE:\s*([\d.]+)/);
   if (confMatch) confidence = Math.min(1, Math.max(0, parseFloat(confMatch[1])));
 
-  const summary = cleaned
+  const summary = response
     .replace(/SENTIMENT:\s*(bullish|bearish|neutral|mixed)/i, '')
     .replace(/CONFIDENCE:\s*[\d.]+/, '')
     .trim();
@@ -313,7 +281,7 @@ CONFIDENCE: [a number from 0.0 to 1.0 indicating confidence in your assessment]`
   return { summary, sentiment, confidence };
 }
 
-// ── Algorithmic Fallback (no LLM needed) ─────────────────
+// ── Algorithmic Fallback (if Groq key not set) ────────────
 
 function algorithmicSummary(
   narratives: { dimension: string; title: string; sentiment: string; summary: string }[],
@@ -345,10 +313,10 @@ function algorithmicSummary(
 
   paragraphs.push(
     `Analysis of ${companyName} (${ticker}) across ${total} research dimensions reveals ` +
-      `a ${sentiment} outlook. ` +
-      `${counts.positive} dimension${counts.positive !== 1 ? 's show' : ' shows'} positive signals, ` +
-      `${counts.negative} ${counts.negative !== 1 ? 'are' : 'is'} negative, ` +
-      `and ${counts.neutral + counts.mixed} ${counts.neutral + counts.mixed !== 1 ? 'are' : 'is'} neutral or mixed.`,
+    `a ${sentiment} outlook. ` +
+    `${counts.positive} dimension${counts.positive !== 1 ? 's show' : ' shows'} positive signals, ` +
+    `${counts.negative} ${counts.negative !== 1 ? 'are' : 'is'} negative, ` +
+    `and ${counts.neutral + counts.mixed} ${counts.neutral + counts.mixed !== 1 ? 'are' : 'is'} neutral or mixed.`,
   );
 
   const positiveNarratives = narratives.filter((n) => n.sentiment === 'positive');
@@ -371,7 +339,7 @@ function algorithmicSummary(
 
   paragraphs.push(
     `This analysis is based on publicly available news sources, social media sentiment, ` +
-      `and market data. Investors should conduct their own due diligence before making investment decisions.`,
+    `and market data. Investors should conduct their own due diligence before making investment decisions.`,
   );
 
   return { summary: paragraphs.join('\n\n'), sentiment, confidence };
