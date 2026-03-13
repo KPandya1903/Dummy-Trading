@@ -25,6 +25,8 @@ import geminiRoutes from './routes/gemini.routes.js';
 import searchRoutes from './routes/search.routes.js';
 import researchRoutes from './routes/research.routes.js';
 import cronRoutes from './routes/cron.routes.js';
+import screenerRoutes from './routes/screener.routes.js';
+import valuationRoutes from './routes/valuation.routes.js';
 
 const app = express();
 
@@ -59,5 +61,7 @@ app.use('/api/gemini', geminiRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/research', researchRoutes);
 app.use('/api/cron', cronRoutes);
+app.use('/api/screener', screenerRoutes);
+app.use('/api/valuation', valuationRoutes);
 
 export default app;

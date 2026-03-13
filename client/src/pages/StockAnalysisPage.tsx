@@ -10,6 +10,7 @@ import {
   ToggleButton,
   Chip,
   Button,
+  Tooltip,
   Grid,
   FormControlLabel,
   Checkbox,
@@ -54,6 +55,7 @@ interface AnalysisData {
     bollingerBands?: { date: string; upper: number; middle: number; lower: number }[];
     sma20?: { date: string; value: number }[];
     sma50?: { date: string; value: number }[];
+    sma150?: { date: string; value: number }[];
     sma200?: { date: string; value: number }[];
     ema12?: { date: string; value: number }[];
     ema26?: { date: string; value: number }[];
@@ -63,11 +65,21 @@ interface AnalysisData {
     rsiSignal: 'overbought' | 'oversold' | 'neutral';
     macdSignal: 'bullish' | 'bearish';
     bollingerPosition: 'upper' | 'middle' | 'lower';
+    weinsteinStage: '1' | '2' | '3' | '4' | null;
+    weinsteinLabel: string;
+    sma150Last: number | null;
   };
 }
 
 const PERIODS = ['3M', '6M', '1Y', '2Y', '5Y'];
-const INDICATORS = ['rsi', 'macd', 'bollinger', 'sma', 'ema'];
+const INDICATORS = ['rsi', 'macd', 'bollinger', 'sma', 'ema', 'stage'];
+
+const WEINSTEIN_COLORS: Record<string, { color: 'success' | 'warning' | 'error' | 'default'; bg: string }> = {
+  '1': { color: 'default',  bg: 'rgba(122,139,165,0.12)' },
+  '2': { color: 'success',  bg: 'rgba(0,200,83,0.10)'    },
+  '3': { color: 'warning',  bg: 'rgba(255,171,0,0.10)'   },
+  '4': { color: 'error',    bg: 'rgba(255,82,82,0.10)'   },
+};
 
 const panelSx = {
   p: 4,
@@ -128,6 +140,9 @@ export default function StockAnalysisPage() {
   }
   if (data.indicators.sma50) {
     for (const p of data.indicators.sma50) indicatorMap.set(p.date, { ...indicatorMap.get(p.date), sma50: p.value });
+  }
+  if (data.indicators.sma150) {
+    for (const p of data.indicators.sma150) indicatorMap.set(p.date, { ...indicatorMap.get(p.date), sma150: p.value });
   }
   if (data.indicators.sma200) {
     for (const p of data.indicators.sma200) indicatorMap.set(p.date, { ...indicatorMap.get(p.date), sma200: p.value });
@@ -224,6 +239,11 @@ export default function StockAnalysisPage() {
               </>
             )}
 
+            {/* Weinstein 30-week MA (SMA 150) */}
+            {activeIndicators.includes('stage') && (
+              <Line yAxisId="price" type="monotone" dataKey="sma150" stroke="#c9a84c" dot={false} name="SMA 150 (30w)" strokeWidth={2} strokeDasharray="5 3" />
+            )}
+
             {/* EMA lines */}
             {activeIndicators.includes('ema') && (
               <>
@@ -310,6 +330,38 @@ export default function StockAnalysisPage() {
             </Typography>
           </Grid>
         </Grid>
+
+        {/* Weinstein Stage */}
+        {data.summary.weinsteinStage && (
+          <Box
+            mt={2.5}
+            p={1.5}
+            borderRadius={1}
+            sx={{ background: WEINSTEIN_COLORS[data.summary.weinsteinStage]?.bg ?? 'transparent' }}
+          >
+            <Box display="flex" alignItems="center" gap={1.5} flexWrap="wrap">
+              <Chip
+                label={data.summary.weinsteinLabel}
+                color={WEINSTEIN_COLORS[data.summary.weinsteinStage]?.color}
+                size="small"
+                sx={{ fontWeight: 700 }}
+              />
+              {data.summary.sma150Last !== null && (
+                <Typography variant="caption" color="text.secondary">
+                  SMA 150 (30-week): ${data.summary.sma150Last.toFixed(2)}
+                </Typography>
+              )}
+              <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
+                {{
+                  '1': 'Weinstein: Wait for Stage 2 breakout above SMA150 with volume.',
+                  '2': 'Weinstein: Confirmed uptrend — hold or add on pullbacks to SMA150.',
+                  '3': 'Weinstein: Distribution phase. Reduce exposure, tighten stops.',
+                  '4': 'Weinstein: Downtrend. Avoid new longs until Stage 1 base forms.',
+                }[data.summary.weinsteinStage]}
+              </Typography>
+            </Box>
+          </Box>
+        )}
       </Paper>
 
       {/* Gemini AI Analysis */}

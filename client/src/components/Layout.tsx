@@ -27,6 +27,8 @@ import {
   Group,
   EmojiEvents,
   MilitaryTech,
+  FilterList,
+  Waves,
 } from '@mui/icons-material';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import TickerTape from './TickerTape';
@@ -118,6 +120,10 @@ export default function Layout() {
             <MenuItem component={Link} to="/compare" onClick={closeExplore}>
               <ListItemIcon><CompareArrows fontSize="small" /></ListItemIcon>
               <ListItemText>Compare Stocks</ListItemText>
+            </MenuItem>
+            <MenuItem component={Link} to="/screener" onClick={closeExplore}>
+              <ListItemIcon><FilterList fontSize="small" /></ListItemIcon>
+              <ListItemText>Stock Screener</ListItemText>
             </MenuItem>
             <Divider />
             <MenuItem component={Link} to="/news" onClick={closeExplore}>

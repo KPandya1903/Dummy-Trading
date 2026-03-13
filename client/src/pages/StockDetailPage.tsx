@@ -23,6 +23,7 @@ import StockNewsPanel from '../components/StockNewsPanel';
 import { CHART_COLORS, CHART_TOOLTIP_STYLE, CHART_GRID_COLOR, CHART_AXIS_COLOR, getChartLineColor } from '../theme';
 import AnimatedNumber from '../components/AnimatedNumber';
 import FactorScorecard from '../components/FactorScorecard';
+import ValuationContextPanel from '../components/ValuationContextPanel';
 
 interface QuoteDetail {
   ticker: string;
@@ -149,6 +150,8 @@ export default function StockDetailPage() {
           <StatCard label="Industry" value={quote.industry || 'N/A'} />
         </Grid>
       </Grid>
+
+      <ValuationContextPanel ticker={quote.ticker} />
 
       <FactorScorecard ticker={quote.ticker} />
 

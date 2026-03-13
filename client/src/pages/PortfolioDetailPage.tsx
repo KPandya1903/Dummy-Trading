@@ -24,6 +24,8 @@ import PortfolioChart from '../components/PortfolioChart';
 import DiversificationChart from '../components/DiversificationChart';
 import SectorChart from '../components/SectorChart';
 import PortfolioRiskMetrics from '../components/PortfolioRiskMetrics';
+import PositionSizingPanel from '../components/PositionSizingPanel';
+import BehavioralBiasPanel from '../components/BehavioralBiasPanel';
 
 interface Position {
   ticker: string;
@@ -168,6 +170,10 @@ export default function PortfolioDetailPage() {
       <PortfolioChart portfolioId={summary.portfolioId} />
 
       <PortfolioRiskMetrics portfolioId={summary.portfolioId} />
+
+      <PositionSizingPanel portfolioId={summary.portfolioId} />
+
+      <BehavioralBiasPanel portfolioId={summary.portfolioId} />
 
       {/* ── Positions table ───────────────────────────── */}
       <Typography variant="h6" gutterBottom>

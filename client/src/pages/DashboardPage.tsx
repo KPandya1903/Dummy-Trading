@@ -29,6 +29,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import useApi from '../hooks/useApi';
 import DashboardPerformanceChart from '../components/DashboardPerformanceChart';
 import AnimatedNumber from '../components/AnimatedNumber';
+import MarketRegimePanel from '../components/MarketRegimePanel';
 
 interface DashboardData {
   totalValue: number;
@@ -224,6 +225,11 @@ export default function DashboardPage() {
             totalStartingCash={data.totalStartingCash}
           />
         </Paper>
+      </Grid>
+
+      {/* ── MARKET REGIME Panel ─────────────────────────── */}
+      <Grid item xs={12}>
+        <MarketRegimePanel />
       </Grid>
 
       {/* ── GAME INFO Panel ─────────────────────────────── */}

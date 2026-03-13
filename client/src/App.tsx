@@ -21,6 +21,7 @@ import PredictionLandingPage from './pages/PredictionLandingPage';
 import NewsLandingPage from './pages/NewsLandingPage';
 import ResearchLandingPage from './pages/ResearchLandingPage';
 import ResearchReportPage from './pages/ResearchReportPage';
+import ScreenerPage from './pages/ScreenerPage';
 
 function RequireAuth() {
   const token = localStorage.getItem('token');
@@ -44,6 +45,7 @@ export default function App() {
         <Route path="/news" element={<NewsLandingPage />} />
         <Route path="/research" element={<ResearchLandingPage />} />
         <Route path="/research/:id" element={<ResearchReportPage />} />
+        <Route path="/screener" element={<ScreenerPage />} />
         <Route element={<RequireAuth />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/portfolios" element={<PortfolioListPage />} />
