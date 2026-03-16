@@ -206,8 +206,12 @@ export default function MarketPage() {
         </Alert>
       )}
 
-      {view === 'heatmap' && heatmapEntries ? (
-        <MarketHeatmap entries={heatmapEntries} />
+      {view === 'heatmap' ? (
+        heatmapEntries ? (
+          <MarketHeatmap entries={heatmapEntries} />
+        ) : (
+          <PageLoader />
+        )
       ) : view === 'table' ? (
         <>
           {/* Filters */}
