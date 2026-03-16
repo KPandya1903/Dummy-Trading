@@ -54,6 +54,8 @@ export default function StockDetailPage() {
   const { ticker } = useParams<{ ticker: string }>();
   const { data: quote, loading, error } = useApi<QuoteDetail>(
     ticker ? `/quotes/${ticker}` : null,
+    undefined,
+    1_000,
   );
 
   if (loading) return <PageLoader />;

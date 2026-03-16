@@ -43,6 +43,8 @@ interface Portfolio {
 export default function WatchlistPage() {
   const { data: items, loading, error, refetch } = useApi<WatchlistItem[]>(
     '/watchlist',
+    undefined,
+    5_000,
   );
   const { data: portfolios } = useApi<Portfolio[]>('/portfolios');
 

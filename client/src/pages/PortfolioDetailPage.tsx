@@ -87,7 +87,7 @@ export default function PortfolioDetailPage() {
     loading,
     error,
     refetch,
-  } = useApi<Summary>(`/portfolios/${id}/summary`);
+  } = useApi<Summary>(`/portfolios/${id}/summary`, undefined, 5_000);
 
   const {
     data: orders,

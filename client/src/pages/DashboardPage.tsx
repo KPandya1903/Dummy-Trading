@@ -86,7 +86,7 @@ const panelSx = {
 };
 
 export default function DashboardPage() {
-  const { data, loading, error } = useApi<DashboardData>('/dashboard');
+  const { data, loading, error } = useApi<DashboardData>('/dashboard', undefined, 5_000);
   const navigate = useNavigate();
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     gameInfo: false,
