@@ -8,13 +8,19 @@ A full-featured paper trading platform where users get virtual cash, trade stock
 |-------|-----------|
 | Frontend | React 18, TypeScript, Vite 5, Material UI 5, Recharts |
 | Backend | Node.js, Express 4, TypeScript, ESM |
-| Database | PostgreSQL via Prisma ORM |
+| Database | PostgreSQL via Prisma ORM (Neon hosted) |
 | ML/AI | TensorFlow.js, trading-signals, regression |
 | LLM | Google Gemini (news), Ollama + DeepSeek-R1 (research) |
+| Auth | Google OAuth 2.0 (`@react-oauth/google`) |
 | Market Data | Yahoo Finance (quotes/history), Alpaca (real-time prices) |
 | Monorepo | npm workspaces (`server/` + `client/`) |
 
 ## Features
+
+### Authentication
+- Google OAuth — one-click sign-in, auto-creates account from Google profile
+- No email/password forms — Google-only for simplicity and security
+- JWT sessions issued on successful Google verification
 
 ### Trading & Portfolios
 - Multiple portfolios per user with $100k starting cash
@@ -30,13 +36,15 @@ A full-featured paper trading platform where users get virtual cash, trade stock
 - Group-specific leaderboards and portfolio constraints
 
 ### Market Data
-- Full S&P 500 browsable/searchable/sortable market page
-- 10 market classifier tiles (top gainers, losers, most active, highest market cap, most volatile, sector leaders, 52-week highs, highest dividend, lowest P/E, momentum leaders)
+- Full S&P 500 browsable/searchable/sortable market page with **1-second live price updates**
+- S&P 500 interactive OHLC candlestick chart (1W/1M/3M/6M/1Y/5Y periods)
+- Market Regime Panel and 10 market classifier tiles (top gainers, losers, most active, highest market cap, most volatile, sector leaders, 52-week highs, highest dividend, lowest P/E, momentum leaders)
 - Universal stock search via Yahoo Finance (any ticker)
-- Scrolling ticker tape with real-time prices
+- Scrolling ticker tape with real-time prices (1-second polling)
 
 ### Technical Analysis
-- RSI (14), MACD (12/26/9), Bollinger Bands (20,2), SMA (20/50/200), EMA (12/26)
+- RSI (14), MACD (12/26/9), Bollinger Bands (20,2), SMA (20/50/150/200), EMA (12/26)
+- **Weinstein Stage Analysis** — classifies stocks into Stage 1 (Base), 2 (Advance), 3 (Distribution), or 4 (Decline) using SMA150 slope and price position
 - Configurable period: 3M, 6M, 1Y, 2Y, 5Y
 - Interactive charts with Recharts
 
@@ -75,15 +83,24 @@ A full-featured paper trading platform where users get virtual cash, trade stock
 - 7 badges: First Trade, Diversifier, Ten Percent, Beat Market, Day Trader, Diamond Hands, Full Portfolio
 - Global and group leaderboards ranked by return %
 
+### User Profile
+- Avatar with initials fallback
+- Stats: portfolio count, trade count, badges earned
+- Editable name, bio, and location
+- Google account linked status
+
 ## Project Structure
 
 ```
 ├── server/
 │   ├── prisma/schema.prisma          # 10 models, 6 enums
 │   └── src/
-│       ├── index.ts                  # Express entry, 20 route mounts, background tasks
+│       ├── index.ts                  # Express entry, route mounts, background tasks
+│       ├── middleware/
+│       │   └── auth.ts               # JWT Bearer token middleware
 │       ├── routes/
-│       │   ├── auth.routes.ts        # Register / login (JWT)
+│       │   ├── auth.routes.ts        # Google OAuth + JWT issuance
+│       │   ├── user.routes.ts        # Profile GET/PATCH
 │       │   ├── portfolio.routes.ts   # CRUD, summary, performance history
 │       │   ├── trade.routes.ts       # Execute, list, export CSV, review
 │       │   ├── watchlist.routes.ts   # CRUD with price alerts
@@ -93,7 +110,7 @@ A full-featured paper trading platform where users get virtual cash, trade stock
 │       │   ├── order.routes.ts       # Limit/stop orders
 │       │   ├── badge.routes.ts       # Achievement system
 │       │   ├── dashboard.routes.ts   # Dashboard aggregate
-│       │   ├── market.routes.ts      # S&P 500 data, search, top movers
+│       │   ├── market.routes.ts      # S&P 500 data, search, OHLC chart
 │       │   ├── marketClassifiers.routes.ts  # 10 classifier tiles
 │       │   ├── search.routes.ts      # Universal Yahoo Finance search
 │       │   ├── quote.routes.ts       # Detailed stock quotes
@@ -106,8 +123,8 @@ A full-featured paper trading platform where users get virtual cash, trade stock
 │       └── services/
 │           ├── prediction/           # Stacked ensemble system
 │           │   ├── types.ts          # Shared interfaces
-│           │   ├── utils.ts          # Normalization, date helpers
-│           │   ├── featureEngineering.ts  # 23-feature matrix
+│           │   ├── utils.ts          # Normalization, business-day helpers
+│           │   ├── featureEngineering.ts  # 23-feature matrix builder
 │           │   ├── baseLearners/
 │           │   │   ├── exponentialSmoothing.ts  # Holt-Winters
 │           │   │   ├── enhancedLstm.ts          # Bidirectional LSTM
@@ -117,12 +134,12 @@ A full-featured paper trading platform where users get virtual cash, trade stock
 │           │   ├── ensemble.ts       # Orchestrator
 │           │   ├── backtesting.ts    # Walk-forward validation
 │           │   └── index.ts          # Public exports
-│           ├── technicalAnalysisService.ts  # RSI, MACD, BB, SMA, EMA
+│           ├── technicalAnalysisService.ts  # RSI, MACD, BB, SMA, EMA, Weinstein
 │           ├── ollamaService.ts      # Local LLM (DeepSeek-R1)
 │           ├── webScraperService.ts  # News scraping
 │           ├── researchService.ts    # Research pipeline
 │           ├── geminiService.ts      # Gemini API
-│           ├── marketService.ts      # Market data cache
+│           ├── marketService.ts      # Market data cache (2s TTL)
 │           ├── priceService.ts       # Alpaca real-time prices
 │           ├── portfolioService.ts   # Portfolio calculations
 │           ├── alertService.ts       # Alert checking (60s)
@@ -130,18 +147,22 @@ A full-featured paper trading platform where users get virtual cash, trade stock
 │           └── badgeService.ts       # Achievement system
 └── client/
     └── src/
-        ├── App.tsx                   # 20+ routes
-        ├── theme.ts                  # Navy/gold dark theme
+        ├── App.tsx                   # 20+ routes, Google OAuth provider
+        ├── theme.ts                  # Black/green Robinhood-style dark theme
         ├── components/
-        │   ├── Layout.tsx            # AppBar nav + ticker tape
-        │   ├── TickerTape.tsx        # Scrolling price ticker
+        │   ├── Layout.tsx            # Sidebar nav + ticker tape
+        │   ├── TickerTape.tsx        # Scrolling price ticker (1s polling)
+        │   ├── SP500CandlestickChart.tsx  # OHLC candlestick via Recharts Customized layer
+        │   ├── SP500IndexChart.tsx   # S&P 500 line chart
         │   ├── GeminiInsightPanel.tsx # AI analysis panel
-        │   ├── MarketHeatmap.tsx     # Market visualization
-        │   ├── MarketClassifierTiles.tsx  # Classifier cards
+        │   ├── MarketClassifierTiles.tsx  # 10 classifier cards
+        │   ├── MarketRegimePanel.tsx # Market regime indicator
         │   └── ...                   # Charts, forms, research tiles
         └── pages/
+            ├── LoginPage.tsx         # Google OAuth sign-in
+            ├── ProfilePage.tsx       # User profile + stats + edit
             ├── DashboardPage.tsx     # Main dashboard
-            ├── MarketPage.tsx        # S&P 500 browser
+            ├── MarketPage.tsx        # S&P 500 browser + candlestick toggle
             ├── StockDetailPage.tsx   # Stock quotes & fundamentals
             ├── StockAnalysisPage.tsx # Technical analysis charts
             ├── StockPredictionPage.tsx  # ML prediction + ensemble
@@ -167,12 +188,14 @@ Research 1──* ResearchNarrative
 
 10 models: User, Portfolio, Trade, WatchlistItem, PendingOrder, Group, GroupMembership, UserBadge, Research, ResearchNarrative
 
+User model fields: `id`, `email`, `passwordHash?`, `name?`, `avatarUrl?`, `googleId?`, `bio?`, `location?`, `createdAt`
+
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 18+
-- PostgreSQL running locally
+- PostgreSQL running locally (or a Neon connection string)
 - Ollama (optional, for research reports): `brew install ollama && ollama pull deepseek-r1:8b`
 
 ### Environment Variables
@@ -186,6 +209,9 @@ ALPACA_API_KEY="your-alpaca-key"          # Optional: for real-time prices
 ALPACA_API_SECRET="your-alpaca-secret"
 OLLAMA_URL="http://localhost:11434"       # Optional: for research
 OLLAMA_MODEL="deepseek-r1:8b"            # Optional: for research
+
+# client/.env
+VITE_GOOGLE_CLIENT_ID="your-google-oauth-client-id"
 ```
 
 ### Setup
@@ -205,7 +231,7 @@ npm run dev:client   # Vite on http://localhost:5173
 ### Other Commands
 
 ```bash
-npm test -w server              # Portfolio calculation tests
+npm test -w server              # Run 135 tests (auth, TA, feature engineering, prediction utils)
 npm run lint                    # ESLint
 npm run build:server            # Compile server
 npm run build:client            # Vite production build
