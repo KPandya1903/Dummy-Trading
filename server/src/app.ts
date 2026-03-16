@@ -27,6 +27,7 @@ import researchRoutes from './routes/research.routes.js';
 import cronRoutes from './routes/cron.routes.js';
 import screenerRoutes from './routes/screener.routes.js';
 import valuationRoutes from './routes/valuation.routes.js';
+import userRoutes from './routes/user.routes.js';
 
 const app = express();
 
@@ -63,5 +64,6 @@ app.use('/api/research', researchRoutes);
 app.use('/api/cron', cronRoutes);
 app.use('/api/screener', screenerRoutes);
 app.use('/api/valuation', valuationRoutes);
+app.use('/api/users', userRoutes);
 
 export default app;

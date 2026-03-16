@@ -1,0 +1,137 @@
+{
+  "name": "Alpha Terminal — Copy-Trade Signal Executor",
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Copy Trade Signal Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 200],
+      "parameters": {
+        "path": "copy-trade-signal",
+        "responseMode": "onReceived",
+        "responseData": "noData"
+      },
+      "webhookId": "copy-trade-executor"
+    },
+    {
+      "id": "validate-signal",
+      "name": "Validate Signal Quality",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [260, 200],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "confidence-check",
+              "leftValue": "={{ $json.body?.confidence || $json.confidence }}",
+              "rightValue": 0.75,
+              "operator": { "type": "number", "operation": "gte" }
+            },
+            {
+              "id": "signal-check",
+              "leftValue": "={{ $json.body?.signal || $json.signal }}",
+              "rightValue": "NEUTRAL",
+              "operator": { "type": "string", "operation": "notEquals" }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "get-subscribed-users",
+      "name": "Get Copy-Trade Subscribers",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [520, 100],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $vars.DUMMY_API_URL || 'http://localhost:3001' }}/api/copy-trade/subscribers",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-internal-key", "value": "={{ $vars.INTERNAL_API_KEY }}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "prepare-trades",
+      "name": "Calculate Trade Sizes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [780, 100],
+      "parameters": {
+        "jsCode": "const signal = $input.all()[0].json.body || $input.all()[0].json;\nconst subscribers = $input.item.json?.users || $input.item.json || [];\n\n// Calculate position size: 2% of portfolio by default, scaled by confidence\nconst baseAllocation = 0.02;\nconst confidenceMultiplier = Math.min(signal.confidence / 0.75, 1.5);\nconst allocation = baseAllocation * confidenceMultiplier;\n\nreturn (Array.isArray(subscribers) ? subscribers : []).map(user => ({\n  json: {\n    userId: user.id,\n    symbol: signal.symbol,\n    side: signal.signal === 'BULLISH' ? 'BUY' : 'SELL',\n    allocationPercent: allocation,\n    portfolioValue: user.portfolioValue || 10000,\n    estimatedAmount: (user.portfolioValue || 10000) * allocation,\n    signal: signal.signal,\n    confidence: signal.confidence,\n    modelName: signal.modelName,\n    orderType: 'MARKET',\n    source: 'copy_trade_ml'\n  }\n}));"
+      }
+    },
+    {
+      "id": "execute-trades",
+      "name": "Execute Paper Trades",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1040, 100],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.DUMMY_API_URL || 'http://localhost:3001' }}/api/trades/copy-execute",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify($json) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-internal-key", "value": "={{ $vars.INTERNAL_API_KEY }}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "notify-executions",
+      "name": "Notify Copy-Trade Executed",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [1300, 100],
+      "parameters": {
+        "operation": "sendMessage",
+        "webhookUri": "={{ $vars.DISCORD_WEBHOOK_URL }}",
+        "content": "🤖 **Copy-Trade Executed** — {{ $json.symbol }}\nSignal: {{ $json.signal }} ({{ ($json.confidence * 100).toFixed(1) }}% confidence)\nExecuted for {{ $json.userCount || 1 }} subscribers"
+      }
+    },
+    {
+      "id": "reject-signal",
+      "name": "Log Rejected Signal",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 380],
+      "parameters": {
+        "jsCode": "const d = $input.item.json.body || $input.item.json;\nconsole.log(`[Copy Trade] Signal rejected — ${d.symbol}: confidence=${d.confidence}, signal=${d.signal}`);\nreturn [{ json: { rejected: true, reason: 'Below confidence threshold or NEUTRAL signal', ...d } }];"
+      }
+    }
+  ],
+  "connections": {
+    "Copy Trade Signal Webhook": {
+      "main": [[{ "node": "Validate Signal Quality", "type": "main", "index": 0 }]]
+    },
+    "Validate Signal Quality": {
+      "main": [
+        [{ "node": "Get Copy-Trade Subscribers", "type": "main", "index": 0 }],
+        [{ "node": "Log Rejected Signal", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Copy-Trade Subscribers": {
+      "main": [[{ "node": "Calculate Trade Sizes", "type": "main", "index": 0 }]]
+    },
+    "Calculate Trade Sizes": {
+      "main": [[{ "node": "Execute Paper Trades", "type": "main", "index": 0 }]]
+    },
+    "Execute Paper Trades": {
+      "main": [[{ "node": "Notify Copy-Trade Executed", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "phase-3" }, { "name": "alpha-terminal" }, { "name": "copy-trade" }]
+}

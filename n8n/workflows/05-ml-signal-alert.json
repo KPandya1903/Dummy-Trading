@@ -1,0 +1,127 @@
+{
+  "name": "Alpha Terminal — ML Signal Alert",
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "ML Signal Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 200],
+      "parameters": {
+        "path": "ml-signal",
+        "responseMode": "onReceived",
+        "responseData": "noData"
+      },
+      "webhookId": "ml-signal-alert"
+    },
+    {
+      "id": "check-confidence",
+      "name": "Check Confidence Threshold",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [260, 200],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false },
+          "conditions": [
+            {
+              "id": "conf-check",
+              "leftValue": "={{ $json.body?.confidence || $json.confidence }}",
+              "rightValue": 0.65,
+              "operator": { "type": "number", "operation": "gte" }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "format-signal",
+      "name": "Format Signal Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 120],
+      "parameters": {
+        "jsCode": "const d = $input.item.json.body || $input.item.json;\nconst signal = d.signal?.toUpperCase();\nconst emoji = signal === 'BULLISH' ? '🟢🚀' : signal === 'BEARISH' ? '🔴📉' : '🟡⚠️';\nconst confidence = (Number(d.confidence) * 100).toFixed(1);\nconst model = d.modelName || 'ML Ensemble';\n\nreturn [{\n  json: {\n    ...d,\n    discordMessage: `${emoji} **ML Signal Flip Detected**\\n**${d.symbol}** → **${signal}**\\n🎯 Confidence: **${confidence}%**\\n🤖 Model: ${model}\\n📊 Features: RSI=${d.rsi?.toFixed(1) || 'N/A'} | MACD=${d.macd?.toFixed(3) || 'N/A'} | Sentiment=${d.sentimentScore?.toFixed(2) || 'N/A'}`,\n    slackMessage: `${emoji} *ML Signal* — *${d.symbol}* flipped to *${signal}* (${confidence}% confidence via ${model})`\n  }\n}];"
+      }
+    },
+    {
+      "id": "discord-signal",
+      "name": "Discord Signal Alert",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [780, 0],
+      "parameters": {
+        "operation": "sendMessage",
+        "webhookUri": "={{ $vars.DISCORD_ML_WEBHOOK_URL || $vars.DISCORD_WEBHOOK_URL }}",
+        "content": "={{ $json.discordMessage }}"
+      }
+    },
+    {
+      "id": "slack-signal",
+      "name": "Slack Signal Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [780, 200],
+      "parameters": {
+        "operation": "post",
+        "channel": "={{ $vars.SLACK_ML_CHANNEL || '#ml-signals' }}",
+        "text": "={{ $json.slackMessage }}"
+      },
+      "credentials": {
+        "slackApi": { "id": "slack-creds", "name": "Slack API" }
+      }
+    },
+    {
+      "id": "store-signal",
+      "name": "Store Signal to DB",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [780, 380],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.DUMMY_API_URL || 'http://localhost:3001' }}/api/signals",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify($json) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-internal-key", "value": "={{ $vars.INTERNAL_API_KEY }}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "low-confidence",
+      "name": "Log Low Confidence Signal",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 380],
+      "parameters": {
+        "jsCode": "const d = $input.item.json.body || $input.item.json;\nconsole.log(`[ML Signal] Low confidence signal for ${d.symbol}: ${d.confidence} — not alerting`);\nreturn [{ json: { skipped: true, symbol: d.symbol, confidence: d.confidence } }];"
+      }
+    }
+  ],
+  "connections": {
+    "ML Signal Webhook": {
+      "main": [[{ "node": "Check Confidence Threshold", "type": "main", "index": 0 }]]
+    },
+    "Check Confidence Threshold": {
+      "main": [
+        [{ "node": "Format Signal Message", "type": "main", "index": 0 }],
+        [{ "node": "Log Low Confidence Signal", "type": "main", "index": 0 }]
+      ]
+    },
+    "Format Signal Message": {
+      "main": [[
+        { "node": "Discord Signal Alert", "type": "main", "index": 0 },
+        { "node": "Slack Signal Alert", "type": "main", "index": 0 },
+        { "node": "Store Signal to DB", "type": "main", "index": 0 }
+      ]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "phase-2" }, { "name": "alpha-terminal" }, { "name": "ml" }]
+}

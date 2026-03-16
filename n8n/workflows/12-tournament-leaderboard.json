@@ -1,0 +1,129 @@
+{
+  "name": "Alpha Terminal — Tournament Leaderboard",
+  "nodes": [
+    {
+      "id": "schedule-trigger",
+      "name": "Hourly Schedule",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [0, 200],
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            { "mode": "custom", "cronExpression": "0 9-17 * * 1-5" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "get-tournaments",
+      "name": "Get Active Tournaments",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [260, 200],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $vars.DUMMY_API_URL || 'http://localhost:3001' }}/api/tournaments/active",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-internal-key", "value": "={{ $vars.INTERNAL_API_KEY }}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "split-tournaments",
+      "name": "Split Tournaments",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 200],
+      "parameters": {
+        "jsCode": "const data = $input.item.json;\nconst tournaments = Array.isArray(data) ? data : data.tournaments || data.data || [];\nreturn tournaments.map(t => ({ json: t }));"
+      }
+    },
+    {
+      "id": "get-participants",
+      "name": "Get Tournament Portfolios",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [780, 200],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $vars.DUMMY_API_URL || 'http://localhost:3001' }}/api/tournaments/{{ $json.id }}/portfolios",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-internal-key", "value": "={{ $vars.INTERNAL_API_KEY }}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "calculate-rankings",
+      "name": "Calculate Rankings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1040, 200],
+      "parameters": {
+        "jsCode": "const data = $input.item.json;\nconst portfolios = Array.isArray(data) ? data : data.portfolios || data.participants || [];\n\n// Calculate Sharpe ratio for each participant\nconst ranked = portfolios.map(p => {\n  const returns = p.dailyReturns || [];\n  const avgReturn = returns.length > 0 ? returns.reduce((a, b) => a + b, 0) / returns.length : 0;\n  const variance = returns.length > 1 \n    ? returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / (returns.length - 1) \n    : 0;\n  const stdDev = Math.sqrt(variance);\n  const sharpe = stdDev > 0 ? (avgReturn * 252) / (stdDev * Math.sqrt(252)) : 0;\n  const totalReturn = p.totalValue && p.startingValue \n    ? ((p.totalValue - p.startingValue) / p.startingValue) * 100 \n    : 0;\n  const maxDrawdown = p.maxDrawdown || 0;\n  \n  return {\n    userId: p.userId,\n    username: p.username || p.userId,\n    totalValue: p.totalValue,\n    totalReturnPct: totalReturn,\n    sharpeRatio: sharpe,\n    maxDrawdown,\n    tradeCount: p.tradeCount || 0\n  };\n}).sort((a, b) => b.sharpeRatio - a.sharpeRatio);\n\n// Add rank\nranked.forEach((p, i) => { p.rank = i + 1; });\n\nconst medalMap = { 1: '🥇', 2: '🥈', 3: '🥉' };\nconst leaderboardText = ranked.slice(0, 10).map(p => \n  `${medalMap[p.rank] || `${p.rank}.`} **${p.username}** — Sharpe: ${p.sharpeRatio.toFixed(3)} | Return: ${p.totalReturnPct.toFixed(2)}%`\n).join('\\n');\n\nreturn [{ json: { rankings: ranked, leaderboardText, tournamentId: data.tournamentId || 'tournament', updatedAt: new Date().toISOString() } }];"
+      }
+    },
+    {
+      "id": "update-leaderboard",
+      "name": "Update Leaderboard in DB",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1300, 200],
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $vars.DUMMY_API_URL || 'http://localhost:3001' }}/api/tournaments/{{ $json.tournamentId }}/leaderboard",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ rankings: $json.rankings, updatedAt: $json.updatedAt }) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-internal-key", "value": "={{ $vars.INTERNAL_API_KEY }}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "discord-leaderboard",
+      "name": "Post Hourly Leaderboard",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [1300, 380],
+      "parameters": {
+        "operation": "sendMessage",
+        "webhookUri": "={{ $vars.DISCORD_TOURNAMENT_WEBHOOK_URL || $vars.DISCORD_WEBHOOK_URL }}",
+        "content": "=🏆 **Leaderboard Update** — {{ new Date().toLocaleTimeString() }}\n{{ $json.leaderboardText }}\n_Ranked by Sharpe Ratio (risk-adjusted returns)_"
+      }
+    }
+  ],
+  "connections": {
+    "Hourly Schedule": {
+      "main": [[{ "node": "Get Active Tournaments", "type": "main", "index": 0 }]]
+    },
+    "Get Active Tournaments": {
+      "main": [[{ "node": "Split Tournaments", "type": "main", "index": 0 }]]
+    },
+    "Split Tournaments": {
+      "main": [[{ "node": "Get Tournament Portfolios", "type": "main", "index": 0 }]]
+    },
+    "Get Tournament Portfolios": {
+      "main": [[{ "node": "Calculate Rankings", "type": "main", "index": 0 }]]
+    },
+    "Calculate Rankings": {
+      "main": [[
+        { "node": "Update Leaderboard in DB", "type": "main", "index": 0 },
+        { "node": "Post Hourly Leaderboard", "type": "main", "index": 0 }
+      ]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "phase-3" }, { "name": "alpha-terminal" }, { "name": "tournament" }]
+}

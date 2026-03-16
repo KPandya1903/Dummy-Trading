@@ -25,6 +25,7 @@ const NewsLandingPage      = lazy(() => import('./pages/NewsLandingPage'));
 const ResearchLandingPage  = lazy(() => import('./pages/ResearchLandingPage'));
 const ResearchReportPage   = lazy(() => import('./pages/ResearchReportPage'));
 const ScreenerPage         = lazy(() => import('./pages/ScreenerPage'));
+const ProfilePage          = lazy(() => import('./pages/ProfilePage'));
 
 function RequireAuth() {
   const token = localStorage.getItem('token');
@@ -59,6 +60,7 @@ export default function App() {
             <Route path="/groups/:id" element={<GroupDetailPage />} />
             <Route path="/trade" element={<TradePage />} />
             <Route path="/badges" element={<BadgesPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

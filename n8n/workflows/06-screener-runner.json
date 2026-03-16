@@ -1,0 +1,121 @@
+{
+  "name": "Alpha Terminal — Screener Runner",
+  "nodes": [
+    {
+      "id": "interval-trigger",
+      "name": "Every 15 Minutes (Market Hours)",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [0, 200],
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            { "mode": "custom", "cronExpression": "*/15 9-16 * * 1-5" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "run-screener",
+      "name": "Run All Screeners",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [260, 200],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $vars.DUMMY_API_URL || 'http://localhost:3001' }}/api/screener/run-all",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-internal-key", "value": "={{ $vars.INTERNAL_API_KEY }}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "check-results",
+      "name": "Has Results?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [520, 200],
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "has-matches",
+              "leftValue": "={{ ($json.matches || []).length }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "format-screener-results",
+      "name": "Format Screener Hits",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [780, 100],
+      "parameters": {
+        "jsCode": "const d = $input.item.json;\nconst matches = d.matches || [];\nconst screenerName = d.screenerName || 'Market Screener';\n\nconst lines = matches.slice(0, 10).map(m => {\n  const changeColor = m.changePercent >= 0 ? '📈' : '📉';\n  return `${changeColor} **${m.symbol}** — ${m.changePercent?.toFixed(2)}% | Vol: ${(m.volume/1e6).toFixed(1)}M | RSI: ${m.rsi?.toFixed(1) || 'N/A'}`;\n});\n\nconst more = matches.length > 10 ? `\\n... and ${matches.length - 10} more` : '';\n\nreturn [{\n  json: {\n    ...d,\n    discordMessage: `🔍 **Screener Alert: ${screenerName}**\\n${lines.join('\\n')}${more}\\n_${new Date().toLocaleTimeString()}_`,\n    matchCount: matches.length\n  }\n}];"
+      }
+    },
+    {
+      "id": "discord-screener",
+      "name": "Discord Screener Alert",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [1040, 100],
+      "parameters": {
+        "operation": "sendMessage",
+        "webhookUri": "={{ $vars.DISCORD_SCREENER_WEBHOOK_URL || $vars.DISCORD_WEBHOOK_URL }}",
+        "content": "={{ $json.discordMessage }}"
+      }
+    },
+    {
+      "id": "store-screener-results",
+      "name": "Store Screener Results",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1040, 280],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.DUMMY_API_URL || 'http://localhost:3001' }}/api/alpha-feed",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ type: 'screener_hit', data: $json.matches, screenerName: $json.screenerName, timestamp: new Date().toISOString() }) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-internal-key", "value": "={{ $vars.INTERNAL_API_KEY }}" }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every 15 Minutes (Market Hours)": {
+      "main": [[{ "node": "Run All Screeners", "type": "main", "index": 0 }]]
+    },
+    "Run All Screeners": {
+      "main": [[{ "node": "Has Results?", "type": "main", "index": 0 }]]
+    },
+    "Has Results?": {
+      "main": [
+        [{ "node": "Format Screener Hits", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Format Screener Hits": {
+      "main": [[
+        { "node": "Discord Screener Alert", "type": "main", "index": 0 },
+        { "node": "Store Screener Results", "type": "main", "index": 0 }
+      ]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "phase-2" }, { "name": "alpha-terminal" }, { "name": "screener" }]
+}

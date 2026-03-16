@@ -1,0 +1,134 @@
+{
+  "name": "Alpha Terminal — Earnings Calendar Watcher",
+  "nodes": [
+    {
+      "id": "schedule-trigger",
+      "name": "Daily 8AM Schedule",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [0, 200],
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            { "mode": "custom", "cronExpression": "0 8 * * 1-5" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "fetch-earnings",
+      "name": "Fetch Upcoming Earnings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 200],
+      "parameters": {
+        "jsCode": "// Fetch earnings calendar from Yahoo Finance for next 2 days\nconst today = new Date();\nconst tomorrow = new Date(today);\ntomorrow.setDate(tomorrow.getDate() + 1);\n\nconst formatDate = (d) => d.toISOString().split('T')[0].replace(/-/g, '');\n\ntry {\n  const url = `https://query1.finance.yahoo.com/v1/finance/trending/US`;\n  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });\n  const data = await res.json();\n  \n  // Also fetch from earnings calendar\n  const earningsUrl = `https://query2.finance.yahoo.com/v1/finance/screener/predefined/saved?formatted=false&scrIds=day_gainers&count=25`;\n  \n  // Return placeholder structure - in production connect to a real earnings API\n  return [{ \n    json: { \n      earningsDate: today.toISOString().split('T')[0],\n      message: 'Earnings calendar fetched',\n      symbols: data.finance?.result?.[0]?.quotes?.map(q => q.symbol) || []\n    } \n  }];\n} catch(e) {\n  return [{ json: { error: e.message, earningsDate: today.toISOString().split('T')[0], symbols: [] } }];\n}"
+      }
+    },
+    {
+      "id": "get-watchlists",
+      "name": "Get All User Watchlists",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [520, 200],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $vars.DUMMY_API_URL || 'http://localhost:3001' }}/api/watchlist/all-symbols",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-internal-key", "value": "={{ $vars.INTERNAL_API_KEY }}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "filter-watchlist-earnings",
+      "name": "Filter Watchlist Earnings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [780, 200],
+      "parameters": {
+        "jsCode": "const earningsData = $input.all()[0].json;\nconst watchlistData = $input.all()[1]?.json || {};\n\nconst earningSymbols = new Set(earningsData.symbols || []);\nconst watchlistedSymbols = watchlistData.symbols || [];\n\nconst matches = watchlistedSymbols.filter(s => earningSymbols.has(s));\n\nreturn [{\n  json: {\n    date: earningsData.earningsDate,\n    earningsSymbols: [...earningSymbols],\n    watchlistedWithEarnings: matches,\n    hasMatches: matches.length > 0\n  }\n}];"
+      }
+    },
+    {
+      "id": "has-earnings",
+      "name": "Watchlisted Earnings?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1040, 200],
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "has-match",
+              "leftValue": "={{ $json.hasMatches }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "discord-earnings",
+      "name": "Discord Earnings Alert",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [1300, 80],
+      "parameters": {
+        "operation": "sendMessage",
+        "webhookUri": "={{ $vars.DISCORD_WEBHOOK_URL }}",
+        "content": "📅 **Earnings Alert** — {{ $json.date }}\n⚠️ Watchlisted stocks reporting: **{{ $json.watchlistedWithEarnings.join(', ') }}**\nTotal earnings today: {{ $json.earningsSymbols.length }} companies"
+      }
+    },
+    {
+      "id": "email-earnings",
+      "name": "Email Earnings Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1300, 280],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.DUMMY_API_URL || 'http://localhost:3001' }}/api/notifications/earnings",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ symbols: $json.watchlistedWithEarnings, date: $json.date }) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-internal-key", "value": "={{ $vars.INTERNAL_API_KEY }}" }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Daily 8AM Schedule": {
+      "main": [[{ "node": "Fetch Upcoming Earnings", "type": "main", "index": 0 }]]
+    },
+    "Fetch Upcoming Earnings": {
+      "main": [[{ "node": "Get All User Watchlists", "type": "main", "index": 0 }]]
+    },
+    "Get All User Watchlists": {
+      "main": [[{ "node": "Filter Watchlist Earnings", "type": "main", "index": 0 }]]
+    },
+    "Filter Watchlist Earnings": {
+      "main": [[{ "node": "Watchlisted Earnings?", "type": "main", "index": 0 }]]
+    },
+    "Watchlisted Earnings?": {
+      "main": [
+        [
+          { "node": "Discord Earnings Alert", "type": "main", "index": 0 },
+          { "node": "Email Earnings Alert", "type": "main", "index": 0 }
+        ],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "phase-2" }, { "name": "alpha-terminal" }, { "name": "earnings" }]
+}

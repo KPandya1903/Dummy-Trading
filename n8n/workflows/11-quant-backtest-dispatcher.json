@@ -1,0 +1,122 @@
+{
+  "name": "Alpha Terminal — Quant Backtest Dispatcher",
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Backtest Request Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 200],
+      "parameters": {
+        "path": "backtest-run",
+        "responseMode": "onReceived",
+        "responseData": "noData"
+      },
+      "webhookId": "backtest-dispatcher"
+    },
+    {
+      "id": "validate-request",
+      "name": "Validate Backtest Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 200],
+      "parameters": {
+        "jsCode": "const d = $input.item.json.body || $input.item.json;\nconst required = ['userId', 'symbol', 'strategy', 'startDate', 'endDate'];\nconst missing = required.filter(k => !d[k]);\n\nif (missing.length > 0) {\n  throw new Error(`Missing required fields: ${missing.join(', ')}`);\n}\n\nconst startDate = new Date(d.startDate);\nconst endDate = new Date(d.endDate);\nconst daysDiff = (endDate - startDate) / (1000 * 60 * 60 * 24);\n\nif (daysDiff < 30) throw new Error('Backtest period must be at least 30 days');\nif (daysDiff > 1825) throw new Error('Backtest period cannot exceed 5 years');\n\nreturn [{\n  json: {\n    ...d,\n    backtestId: `bt_${Date.now()}_${d.userId}`,\n    status: 'queued',\n    estimatedMinutes: Math.ceil(daysDiff / 365) * 2,\n    queuedAt: new Date().toISOString()\n  }\n}];"
+      }
+    },
+    {
+      "id": "create-backtest-job",
+      "name": "Create Backtest Job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [520, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.DUMMY_API_URL || 'http://localhost:3001' }}/api/backtest/jobs",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify($json) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-internal-key", "value": "={{ $vars.INTERNAL_API_KEY }}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "fetch-historical-data",
+      "name": "Fetch Historical Price Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [780, 200],
+      "parameters": {
+        "jsCode": "const d = $input.item.json;\nconst symbol = d.symbol;\nconst startTs = Math.floor(new Date(d.startDate).getTime() / 1000);\nconst endTs = Math.floor(new Date(d.endDate).getTime() / 1000);\n\ntry {\n  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&period1=${startTs}&period2=${endTs}`;\n  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });\n  const data = await res.json();\n  const result = data.chart?.result?.[0];\n  \n  if (!result) throw new Error('No data returned');\n  \n  const timestamps = result.timestamp || [];\n  const quotes = result.indicators?.quote?.[0] || {};\n  \n  const candles = timestamps.map((ts, i) => ({\n    date: new Date(ts * 1000).toISOString().split('T')[0],\n    open: quotes.open?.[i],\n    high: quotes.high?.[i],\n    low: quotes.low?.[i],\n    close: quotes.close?.[i],\n    volume: quotes.volume?.[i]\n  })).filter(c => c.close != null);\n  \n  return [{ json: { ...d, candles, candleCount: candles.length } }];\n} catch(e) {\n  return [{ json: { ...d, error: e.message, candles: [] } }];\n}"
+      }
+    },
+    {
+      "id": "run-backtest",
+      "name": "Run Backtest Engine",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1040, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.DUMMY_API_URL || 'http://localhost:3001' }}/api/backtest/execute",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ backtestId: $json.backtestId, symbol: $json.symbol, strategy: $json.strategy, candles: $json.candles, parameters: $json.parameters || {} }) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-internal-key", "value": "={{ $vars.INTERNAL_API_KEY }}" }
+          ]
+        },
+        "options": { "timeout": 120000 }
+      }
+    },
+    {
+      "id": "notify-complete",
+      "name": "Notify User — Backtest Complete",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1300, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.DUMMY_API_URL || 'http://localhost:3001' }}/api/notifications/backtest-complete",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ userId: $json.userId, backtestId: $json.backtestId, symbol: $json.symbol, totalReturn: $json.totalReturn, sharpe: $json.sharpeRatio, maxDrawdown: $json.maxDrawdown, totalTrades: $json.totalTrades }) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-internal-key", "value": "={{ $vars.INTERNAL_API_KEY }}" }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Backtest Request Webhook": {
+      "main": [[{ "node": "Validate Backtest Request", "type": "main", "index": 0 }]]
+    },
+    "Validate Backtest Request": {
+      "main": [[{ "node": "Create Backtest Job", "type": "main", "index": 0 }]]
+    },
+    "Create Backtest Job": {
+      "main": [[{ "node": "Fetch Historical Price Data", "type": "main", "index": 0 }]]
+    },
+    "Fetch Historical Price Data": {
+      "main": [[{ "node": "Run Backtest Engine", "type": "main", "index": 0 }]]
+    },
+    "Run Backtest Engine": {
+      "main": [[{ "node": "Notify User — Backtest Complete", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "phase-3" }, { "name": "alpha-terminal" }, { "name": "backtest" }]
+}

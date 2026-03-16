@@ -54,7 +54,12 @@ enum ResearchStatus {
 model User {
   id           Int               @id @default(autoincrement())
   email        String            @unique
-  passwordHash String
+  passwordHash String?
+  name         String?
+  avatarUrl    String?
+  googleId     String?           @unique
+  bio          String?
+  location     String?
   portfolios   Portfolio[]
   watchlist    WatchlistItem[]
   memberships  GroupMembership[]

@@ -1,0 +1,87 @@
+{
+  "name": "Alpha Terminal — Price Alert Dispatcher",
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Price Alert Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 200],
+      "parameters": {
+        "path": "price-alert",
+        "responseMode": "onReceived",
+        "responseData": "noData",
+        "options": {}
+      },
+      "webhookId": "price-alert-dispatcher"
+    },
+    {
+      "id": "format-alert",
+      "name": "Format Alert Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 200],
+      "parameters": {
+        "jsCode": "const d = $input.item.json.body || $input.item.json;\nconst conditionMap = { 'above': '📈 broke above', 'below': '📉 dropped below', 'percent_change': '⚡ moved' };\nconst conditionText = conditionMap[d.condition] || d.condition;\nconst triggerPrice = `$${Number(d.triggerPrice).toFixed(2)}`;\nconst currentPrice = `$${Number(d.currentPrice).toFixed(2)}`;\n\nreturn [{\n  json: {\n    ...d,\n    discordMessage: `🔔 **Price Alert Triggered!**\\n**${d.symbol}** ${conditionText} ${triggerPrice}\\nCurrent Price: **${currentPrice}**\\n👤 User: ${d.userId}`,\n    slackMessage: `🔔 *Price Alert* — *${d.symbol}* ${conditionText} ${triggerPrice} (now ${currentPrice})`,\n    emailSubject: `[Alpha Terminal] 🔔 ${d.symbol} Price Alert — ${conditionText} ${triggerPrice}`,\n    emailBody: `<h2>🔔 Price Alert Triggered</h2><p><b>${d.symbol}</b> has ${conditionText} your alert price of <b>${triggerPrice}</b>.</p><p>Current price: <b style=\"color:#00C805\">${currentPrice}</b></p><p>Alert ID: <code>${d.alertId}</code></p><p style=\"color:#888;font-size:12px\">Fired at ${new Date().toLocaleString()}</p>`\n  }\n}];"
+      }
+    },
+    {
+      "id": "discord-alert",
+      "name": "Discord Alert",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [520, 80],
+      "parameters": {
+        "operation": "sendMessage",
+        "webhookUri": "={{ $vars.DISCORD_WEBHOOK_URL }}",
+        "content": "={{ $json.discordMessage }}"
+      }
+    },
+    {
+      "id": "slack-alert",
+      "name": "Slack Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [520, 240],
+      "parameters": {
+        "operation": "post",
+        "channel": "={{ $vars.SLACK_CHANNEL || '#trading-alerts' }}",
+        "text": "={{ $json.slackMessage }}"
+      },
+      "credentials": {
+        "slackApi": { "id": "slack-creds", "name": "Slack API" }
+      }
+    },
+    {
+      "id": "email-alert",
+      "name": "Email Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [520, 400],
+      "parameters": {
+        "toEmail": "={{ $json.userEmail }}",
+        "subject": "={{ $json.emailSubject }}",
+        "emailFormat": "html",
+        "html": "={{ $json.emailBody }}"
+      },
+      "credentials": {
+        "smtp": { "id": "smtp-creds", "name": "SMTP" }
+      }
+    }
+  ],
+  "connections": {
+    "Price Alert Webhook": {
+      "main": [[{ "node": "Format Alert Message", "type": "main", "index": 0 }]]
+    },
+    "Format Alert Message": {
+      "main": [[
+        { "node": "Discord Alert", "type": "main", "index": 0 },
+        { "node": "Slack Alert", "type": "main", "index": 0 },
+        { "node": "Email Alert", "type": "main", "index": 0 }
+      ]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "phase-1" }, { "name": "alpha-terminal" }]
+}

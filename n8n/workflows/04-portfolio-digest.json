@@ -1,0 +1,109 @@
+{
+  "name": "Alpha Terminal — Daily Portfolio Digest",
+  "nodes": [
+    {
+      "id": "schedule-trigger",
+      "name": "Market Close Schedule",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [0, 200],
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            { "mode": "custom", "cronExpression": "30 16 * * 1-5" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "get-all-users",
+      "name": "Get All Users",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [260, 200],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $vars.DUMMY_API_URL || 'http://localhost:3001' }}/api/users",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-internal-key", "value": "={{ $vars.INTERNAL_API_KEY }}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "split-users",
+      "name": "Split Users",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 200],
+      "parameters": {
+        "jsCode": "const users = $input.item.json;\nconst userArray = Array.isArray(users) ? users : users.data || users.users || [];\nreturn userArray.map(user => ({ json: user }));"
+      }
+    },
+    {
+      "id": "get-portfolio",
+      "name": "Get Portfolio Analytics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [780, 200],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $vars.DUMMY_API_URL || 'http://localhost:3001' }}/api/portfolio/{{ $json.id }}/analytics",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-internal-key", "value": "={{ $vars.INTERNAL_API_KEY }}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "calculate-metrics",
+      "name": "Calculate Metrics & Format Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1040, 200],
+      "parameters": {
+        "jsCode": "const d = $input.item.json;\nconst portfolio = d.portfolio || d;\nconst totalValue = Number(portfolio.totalValue || 0).toFixed(2);\nconst dailyPnl = Number(portfolio.dailyPnl || 0).toFixed(2);\nconst dailyPnlPct = Number(portfolio.dailyPnlPercent || 0).toFixed(2);\nconst totalReturn = Number(portfolio.totalReturn || 0).toFixed(2);\nconst sharpe = Number(portfolio.sharpeRatio || 0).toFixed(3);\nconst maxDrawdown = Number(portfolio.maxDrawdown || 0).toFixed(2);\nconst pnlColor = dailyPnl >= 0 ? '#00C805' : '#ff4444';\nconst pnlEmoji = dailyPnl >= 0 ? '📈' : '📉';\n\nreturn [{\n  json: {\n    ...d,\n    emailSubject: `[Alpha Terminal] ${pnlEmoji} Daily Digest — ${new Date().toLocaleDateString()}`,\n    emailBody: `\n<div style=\"font-family:Inter,sans-serif;background:#0a0a0a;color:#fff;padding:24px;max-width:600px\">\n  <h1 style=\"color:#00C805;font-family:'Playfair Display',serif\">Alpha Terminal</h1>\n  <h2 style=\"color:#ccc\">Daily Portfolio Digest — ${new Date().toLocaleDateString()}</h2>\n  <div style=\"background:#111;border:1px solid #1e1e1e;border-radius:8px;padding:16px;margin:16px 0\">\n    <div style=\"font-size:32px;font-family:serif;color:#fff\">$${totalValue}</div>\n    <div style=\"color:${pnlColor};font-size:18px\">${pnlEmoji} $${dailyPnl} (${dailyPnlPct}%) today</div>\n  </div>\n  <table style=\"width:100%;border-collapse:collapse\">\n    <tr><td style=\"padding:8px;color:#888\">Total Return</td><td style=\"color:${totalReturn >= 0 ? '#00C805' : '#ff4444'}\">$${totalReturn}</td></tr>\n    <tr><td style=\"padding:8px;color:#888\">Sharpe Ratio</td><td style=\"color:#fff\">${sharpe}</td></tr>\n    <tr><td style=\"padding:8px;color:#888\">Max Drawdown</td><td style=\"color:#ff4444\">-$${Math.abs(maxDrawdown)}</td></tr>\n    <tr><td style=\"padding:8px;color:#888\">Positions</td><td style=\"color:#fff\">${portfolio.positionCount || 'N/A'}</td></tr>\n  </table>\n  <p style=\"color:#555;font-size:11px;margin-top:24px\">Alpha Terminal · Paper Trading Simulator</p>\n</div>`,\n    toEmail: d.email\n  }\n}];"
+      }
+    },
+    {
+      "id": "send-digest",
+      "name": "Send Digest Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [1300, 200],
+      "parameters": {
+        "toEmail": "={{ $json.toEmail }}",
+        "subject": "={{ $json.emailSubject }}",
+        "emailFormat": "html",
+        "html": "={{ $json.emailBody }}"
+      },
+      "credentials": {
+        "smtp": { "id": "smtp-creds", "name": "SMTP" }
+      }
+    }
+  ],
+  "connections": {
+    "Market Close Schedule": {
+      "main": [[{ "node": "Get All Users", "type": "main", "index": 0 }]]
+    },
+    "Get All Users": {
+      "main": [[{ "node": "Split Users", "type": "main", "index": 0 }]]
+    },
+    "Split Users": {
+      "main": [[{ "node": "Get Portfolio Analytics", "type": "main", "index": 0 }]]
+    },
+    "Get Portfolio Analytics": {
+      "main": [[{ "node": "Calculate Metrics & Format Email", "type": "main", "index": 0 }]]
+    },
+    "Calculate Metrics & Format Email": {
+      "main": [[{ "node": "Send Digest Email", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "phase-1" }, { "name": "alpha-terminal" }, { "name": "email" }]
+}

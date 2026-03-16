@@ -363,6 +363,11 @@ export default function Layout() {
           onClose={() => setAccountAnchor(null)}
           TransitionComponent={Fade}
         >
+          {isLoggedIn && (
+            <MenuItem component={Link} to="/profile" onClick={() => setAccountAnchor(null)}>
+              Profile
+            </MenuItem>
+          )}
           {isLoggedIn ? (
             <MenuItem onClick={handleLogout}>Logout</MenuItem>
           ) : (

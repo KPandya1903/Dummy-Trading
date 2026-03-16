@@ -1,0 +1,87 @@
+{
+  "name": "Alpha Terminal — Order Fill Notifier",
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Order Fill Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 200],
+      "parameters": {
+        "path": "order-fill",
+        "responseMode": "onReceived",
+        "responseData": "noData",
+        "options": {}
+      },
+      "webhookId": "order-fill-notifier"
+    },
+    {
+      "id": "format-message",
+      "name": "Format Notification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 200],
+      "parameters": {
+        "jsCode": "const d = $input.item.json.body || $input.item.json;\nconst side = d.side?.toUpperCase() || 'BUY';\nconst sideEmoji = side === 'BUY' ? '🟢' : '🔴';\nconst total = d.totalValue ? `$${Number(d.totalValue).toFixed(2)}` : 'N/A';\nconst price = d.price ? `$${Number(d.price).toFixed(2)}` : 'N/A';\n\nreturn [{\n  json: {\n    ...d,\n    discordMessage: `${sideEmoji} **Order Filled** | ${side} ${d.qty}x **${d.symbol}** @ ${price}\\n💰 Total: ${total}\\n🆔 Order: \\`${d.orderId}\\`\\n⏱ ${new Date(d.timestamp || Date.now()).toLocaleString()}`,\n    slackMessage: `${sideEmoji} *Order Filled* | ${side} ${d.qty}x *${d.symbol}* @ ${price} — Total: ${total}`,\n    emailSubject: `[Alpha Terminal] Order Filled: ${side} ${d.qty} ${d.symbol}`,\n    emailBody: `<h2>Order Executed</h2><table><tr><td><b>Action</b></td><td>${side}</td></tr><tr><td><b>Symbol</b></td><td>${d.symbol}</td></tr><tr><td><b>Quantity</b></td><td>${d.qty}</td></tr><tr><td><b>Price</b></td><td>${price}</td></tr><tr><td><b>Total Value</b></td><td>${total}</td></tr><tr><td><b>Order ID</b></td><td>${d.orderId}</td></tr><tr><td><b>Time</b></td><td>${new Date(d.timestamp || Date.now()).toLocaleString()}</td></tr></table>`\n  }\n}];"
+      }
+    },
+    {
+      "id": "discord-notify",
+      "name": "Discord Notification",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [520, 80],
+      "parameters": {
+        "operation": "sendMessage",
+        "webhookUri": "={{ $vars.DISCORD_WEBHOOK_URL }}",
+        "content": "={{ $json.discordMessage }}"
+      }
+    },
+    {
+      "id": "slack-notify",
+      "name": "Slack Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [520, 240],
+      "parameters": {
+        "operation": "post",
+        "channel": "={{ $vars.SLACK_CHANNEL || '#trading-alerts' }}",
+        "text": "={{ $json.slackMessage }}"
+      },
+      "credentials": {
+        "slackApi": { "id": "slack-creds", "name": "Slack API" }
+      }
+    },
+    {
+      "id": "email-notify",
+      "name": "Email Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [520, 400],
+      "parameters": {
+        "toEmail": "={{ $json.userEmail }}",
+        "subject": "={{ $json.emailSubject }}",
+        "emailFormat": "html",
+        "html": "={{ $json.emailBody }}"
+      },
+      "credentials": {
+        "smtp": { "id": "smtp-creds", "name": "SMTP" }
+      }
+    }
+  ],
+  "connections": {
+    "Order Fill Webhook": {
+      "main": [[{ "node": "Format Notification", "type": "main", "index": 0 }]]
+    },
+    "Format Notification": {
+      "main": [[
+        { "node": "Discord Notification", "type": "main", "index": 0 },
+        { "node": "Slack Notification", "type": "main", "index": 0 },
+        { "node": "Email Notification", "type": "main", "index": 0 }
+      ]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "phase-1" }, { "name": "alpha-terminal" }]
+}

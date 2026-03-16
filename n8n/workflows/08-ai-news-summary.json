@@ -1,0 +1,117 @@
+{
+  "name": "Alpha Terminal — AI News Sentiment Summary",
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "News Summary Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 200],
+      "parameters": {
+        "path": "news-summary",
+        "responseMode": "lastNode",
+        "responseData": "firstEntryJson"
+      },
+      "webhookId": "ai-news-summary"
+    },
+    {
+      "id": "fetch-news",
+      "name": "Fetch News Headlines",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [260, 200],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://query1.finance.yahoo.com/v1/finance/search?q={{ $json.body?.symbol || $json.symbol }}&newsCount=10&quotesCount=0",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "User-Agent", "value": "Mozilla/5.0" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "prepare-prompt",
+      "name": "Prepare AI Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 200],
+      "parameters": {
+        "jsCode": "const symbol = $input.all()[0].json.body?.symbol || $input.all()[0].json.symbol;\nconst newsData = $input.item.json;\nconst news = newsData.news || [];\n\nconst headlines = news.slice(0, 8).map((n, i) => `${i+1}. ${n.title} (${new Date(n.providerPublishTime * 1000).toLocaleDateString()})`).join('\\n');\n\nreturn [{\n  json: {\n    symbol,\n    headlines,\n    prompt: `You are a financial analyst. Analyze these recent news headlines for ${symbol} and provide:\\n1. Overall sentiment: BULLISH, BEARISH, or NEUTRAL\\n2. Confidence score (0.0 to 1.0)\\n3. 2-sentence summary\\n4. Key risk factors\\n\\nHeadlines:\\n${headlines}\\n\\nRespond in JSON format: { \"sentiment\": \"BULLISH|BEARISH|NEUTRAL\", \"confidence\": 0.0-1.0, \"summary\": \"...\", \"risks\": \"...\" }`\n  }\n}];"
+      }
+    },
+    {
+      "id": "groq-analysis",
+      "name": "Groq AI Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [780, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $vars.GROQ_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: $json.prompt }], temperature: 0.3, max_tokens: 512, response_format: { type: 'json_object' } }) }}"
+      }
+    },
+    {
+      "id": "parse-and-store",
+      "name": "Parse & Store Sentiment",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1040, 200],
+      "parameters": {
+        "jsCode": "const groqResponse = $input.item.json;\nconst symbol = $input.all()[2].json.symbol;\n\nlet analysis = {};\ntry {\n  const content = groqResponse.choices?.[0]?.message?.content;\n  analysis = JSON.parse(content);\n} catch(e) {\n  analysis = { sentiment: 'NEUTRAL', confidence: 0.5, summary: 'Analysis unavailable', risks: 'N/A' };\n}\n\nreturn [{\n  json: {\n    symbol,\n    sentiment: analysis.sentiment,\n    confidence: analysis.confidence,\n    summary: analysis.summary,\n    risks: analysis.risks,\n    analyzedAt: new Date().toISOString()\n  }\n}];"
+      }
+    },
+    {
+      "id": "store-sentiment",
+      "name": "Store Sentiment Score",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1300, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.DUMMY_API_URL || 'http://localhost:3001' }}/api/sentiment",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify($json) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-internal-key", "value": "={{ $vars.INTERNAL_API_KEY }}" }
+          ]
+        }
+      }
+    }
+  ],
+  "connections": {
+    "News Summary Webhook": {
+      "main": [[{ "node": "Fetch News Headlines", "type": "main", "index": 0 }]]
+    },
+    "Fetch News Headlines": {
+      "main": [[{ "node": "Prepare AI Prompt", "type": "main", "index": 0 }]]
+    },
+    "Prepare AI Prompt": {
+      "main": [[{ "node": "Groq AI Analysis", "type": "main", "index": 0 }]]
+    },
+    "Groq AI Analysis": {
+      "main": [[{ "node": "Parse & Store Sentiment", "type": "main", "index": 0 }]]
+    },
+    "Parse & Store Sentiment": {
+      "main": [[{ "node": "Store Sentiment Score", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "phase-2" }, { "name": "alpha-terminal" }, { "name": "ai" }, { "name": "sentiment" }]
+}

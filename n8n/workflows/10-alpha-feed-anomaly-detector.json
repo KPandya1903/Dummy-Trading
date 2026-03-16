@@ -1,0 +1,114 @@
+{
+  "name": "Alpha Terminal — Alpha Feed Anomaly Detector",
+  "nodes": [
+    {
+      "id": "interval-trigger",
+      "name": "Every 5 Minutes (Market Hours)",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [0, 200],
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            { "mode": "custom", "cronExpression": "*/5 9-16 * * 1-5" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "fetch-volume-data",
+      "name": "Fetch Volume & Options Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 200],
+      "parameters": {
+        "jsCode": "// Fetch most active stocks for anomaly detection\nconst symbols = ['SPY', 'QQQ', 'AAPL', 'TSLA', 'NVDA', 'META', 'GOOGL', 'AMZN', 'MSFT', 'AMD'];\nconst results = [];\n\nfor (const symbol of symbols) {\n  try {\n    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=5m&range=1d`;\n    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });\n    const data = await res.json();\n    const result = data.chart?.result?.[0];\n    if (result) {\n      const meta = result.meta;\n      const volumes = result.indicators?.quote?.[0]?.volume || [];\n      const closes = result.indicators?.quote?.[0]?.close || [];\n      const recentVolume = volumes.slice(-3).reduce((a, b) => a + (b || 0), 0) / 3;\n      const avgVolume = volumes.slice(-20).reduce((a, b) => a + (b || 0), 0) / Math.max(volumes.slice(-20).filter(v => v).length, 1);\n      const volumeRatio = avgVolume > 0 ? recentVolume / avgVolume : 1;\n      const priceChange = closes.length > 1 ? ((closes[closes.length-1] - closes[0]) / closes[0]) * 100 : 0;\n      \n      results.push({\n        symbol,\n        currentPrice: meta.regularMarketPrice,\n        volumeRatio: volumeRatio,\n        recentVolume,\n        avgVolume,\n        priceChange5min: priceChange,\n        isAnomaly: volumeRatio > 2.5 || Math.abs(priceChange) > 1.5\n      });\n    }\n  } catch(e) {}\n}\n\nreturn results.map(r => ({ json: r }));"
+      }
+    },
+    {
+      "id": "detect-anomalies",
+      "name": "Filter Real Anomalies",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 200],
+      "parameters": {
+        "jsCode": "const allItems = $input.all().map(i => i.json);\nconst anomalies = allItems.filter(item => item.isAnomaly);\n\nif (anomalies.length === 0) {\n  return [{ json: { hasAnomalies: false, count: 0, anomalies: [] } }];\n}\n\nconst classified = anomalies.map(a => {\n  let type = 'VOLUME_SPIKE';\n  let description = '';\n  \n  if (a.volumeRatio > 5 && Math.abs(a.priceChange5min) > 2) {\n    type = 'UNUSUAL_ACTIVITY';\n    description = `🚨 Massive volume + price move on ${a.symbol}`;\n  } else if (a.volumeRatio > 2.5) {\n    type = 'VOLUME_SPIKE';\n    description = `⚡ Volume spike on ${a.symbol} (${a.volumeRatio.toFixed(1)}x normal)`;\n  } else if (Math.abs(a.priceChange5min) > 1.5) {\n    type = 'PRICE_MOVE';\n    description = `📊 Sharp 5min move on ${a.symbol}: ${a.priceChange5min.toFixed(2)}%`;\n  }\n  \n  return { ...a, type, description };\n});\n\nreturn [{ json: { hasAnomalies: true, count: anomalies.length, anomalies: classified } }];"
+      }
+    },
+    {
+      "id": "has-anomalies",
+      "name": "Has Anomalies?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [780, 200],
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "anomaly-check",
+              "leftValue": "={{ $json.hasAnomalies }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "push-alpha-feed",
+      "name": "Push to Alpha Feed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1040, 80],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.DUMMY_API_URL || 'http://localhost:3001' }}/api/alpha-feed",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ type: 'anomaly', anomalies: $json.anomalies, detectedAt: new Date().toISOString() }) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-internal-key", "value": "={{ $vars.INTERNAL_API_KEY }}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "discord-anomaly",
+      "name": "Discord Alpha Feed Alert",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [1040, 280],
+      "parameters": {
+        "operation": "sendMessage",
+        "webhookUri": "={{ $vars.DISCORD_ALPHA_WEBHOOK_URL || $vars.DISCORD_WEBHOOK_URL }}",
+        "content": "=⚡ **Alpha Feed** — {{ $json.count }} anomal{{ $json.count === 1 ? 'y' : 'ies' }} detected\\n{{ $json.anomalies.map(a => a.description).join('\\n') }}"
+      }
+    }
+  ],
+  "connections": {
+    "Every 5 Minutes (Market Hours)": {
+      "main": [[{ "node": "Fetch Volume & Options Data", "type": "main", "index": 0 }]]
+    },
+    "Fetch Volume & Options Data": {
+      "main": [[{ "node": "Filter Real Anomalies", "type": "main", "index": 0 }]]
+    },
+    "Filter Real Anomalies": {
+      "main": [[{ "node": "Has Anomalies?", "type": "main", "index": 0 }]]
+    },
+    "Has Anomalies?": {
+      "main": [
+        [
+          { "node": "Push to Alpha Feed", "type": "main", "index": 0 },
+          { "node": "Discord Alpha Feed Alert", "type": "main", "index": 0 }
+        ],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "phase-3" }, { "name": "alpha-terminal" }, { "name": "alpha-feed" }]
+}

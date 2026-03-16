@@ -1,0 +1,84 @@
+{
+  "name": "Alpha Terminal — Daily Market Data Sync",
+  "nodes": [
+    {
+      "id": "schedule-trigger",
+      "name": "Market Open Schedule",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [0, 200],
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            { "mode": "custom", "cronExpression": "0 9 * * 1-5" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "fetch-indices",
+      "name": "Fetch Market Indices",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 200],
+      "parameters": {
+        "jsCode": "// Fetch SPY (S&P 500), QQQ (NASDAQ), DIA (DOW) from Yahoo Finance\nconst symbols = ['SPY', 'QQQ', 'DIA', 'IWM', 'VIX'];\nconst results = [];\n\nfor (const symbol of symbols) {\n  try {\n    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=5d`;\n    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });\n    const data = await res.json();\n    const meta = data.chart?.result?.[0]?.meta;\n    if (meta) {\n      results.push({\n        symbol,\n        price: meta.regularMarketPrice,\n        previousClose: meta.previousClose,\n        change: meta.regularMarketPrice - meta.previousClose,\n        changePercent: ((meta.regularMarketPrice - meta.previousClose) / meta.previousClose) * 100,\n        volume: meta.regularMarketVolume,\n        marketCap: meta.marketCap || null,\n        fetchedAt: new Date().toISOString()\n      });\n    }\n  } catch (e) {\n    console.error(`Failed to fetch ${symbol}:`, e.message);\n  }\n}\n\nreturn results.map(r => ({ json: r }));"
+      }
+    },
+    {
+      "id": "store-snapshot",
+      "name": "Store Market Snapshot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [520, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.DUMMY_API_URL || 'http://localhost:3001' }}/api/market/snapshot",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-internal-key", "value": "={{ $vars.INTERNAL_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "symbol", "value": "={{ $json.symbol }}" },
+            { "name": "price", "value": "={{ $json.price }}" },
+            { "name": "change", "value": "={{ $json.change }}" },
+            { "name": "changePercent", "value": "={{ $json.changePercent }}" },
+            { "name": "volume", "value": "={{ $json.volume }}" },
+            { "name": "fetchedAt", "value": "={{ $json.fetchedAt }}" }
+          ]
+        }
+      }
+    },
+    {
+      "id": "notify-success",
+      "name": "Notify Sync Complete",
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [780, 200],
+      "parameters": {
+        "operation": "sendMessage",
+        "webhookUri": "={{ $vars.DISCORD_WEBHOOK_URL }}",
+        "content": "📊 **Market Data Synced** — {{ new Date().toLocaleDateString() }}\\nFetched: SPY, QQQ, DIA, IWM, VIX"
+      }
+    }
+  ],
+  "connections": {
+    "Market Open Schedule": {
+      "main": [[{ "node": "Fetch Market Indices", "type": "main", "index": 0 }]]
+    },
+    "Fetch Market Indices": {
+      "main": [[{ "node": "Store Market Snapshot", "type": "main", "index": 0 }]]
+    },
+    "Store Market Snapshot": {
+      "main": [[{ "node": "Notify Sync Complete", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": [{ "name": "phase-1" }, { "name": "alpha-terminal" }, { "name": "data-pipeline" }]
+}
