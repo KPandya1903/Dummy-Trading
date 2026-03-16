@@ -4,8 +4,8 @@ export function getNextBusinessDay(dateStr: string, offset: number): string {
   const d = new Date(dateStr);
   let count = 0;
   while (count < offset) {
-    d.setDate(d.getDate() + 1);
-    const day = d.getDay();
+    d.setUTCDate(d.getUTCDate() + 1);
+    const day = d.getUTCDay();
     if (day !== 0 && day !== 6) count++;
   }
   return d.toISOString().split('T')[0];
