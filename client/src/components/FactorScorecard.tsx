@@ -37,12 +37,12 @@ const FACTORS: { key: keyof Omit<FactorScores, 'ticker' | 'composite' | 'composi
 const panelSx = {
   p: 3,
   mb: 4,
-  background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
-  border: '1px solid rgba(201,168,76,0.12)',
+  background: 'linear-gradient(135deg, #111111 0%, #1a1a1a 100%)',
+  border: '1px solid rgba(0,200,5,0.12)',
 };
 
 function scoreColor(score: number): string {
-  if (score >= 70) return '#00c853';
+  if (score >= 70) return '#00C805';
   if (score >= 45) return '#ffab00';
   return '#ff5252';
 }

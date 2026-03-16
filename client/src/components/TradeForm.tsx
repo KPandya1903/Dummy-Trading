@@ -354,8 +354,8 @@ export default function TradeForm({
                 mt: 2,
                 p: 2,
                 borderRadius: 1,
-                bgcolor: 'rgba(201,168,76,0.05)',
-                border: '1px solid rgba(201,168,76,0.15)',
+                bgcolor: 'rgba(0,200,5,0.05)',
+                border: '1px solid rgba(0,200,5,0.15)',
               }}
             >
               {priceLoading ? (
@@ -516,8 +516,8 @@ export default function TradeForm({
               sx={{
                 p: 1.5,
                 borderRadius: 1,
-                bgcolor: 'rgba(201,168,76,0.05)',
-                border: '1px solid rgba(201,168,76,0.15)',
+                bgcolor: 'rgba(0,200,5,0.05)',
+                border: '1px solid rgba(0,200,5,0.15)',
                 mb: 2.5,
               }}
             >
@@ -550,8 +550,8 @@ export default function TradeForm({
             variant="outlined"
             sx={{
               p: 3,
-              background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
-              border: '1px solid rgba(201,168,76,0.15)',
+              background: 'linear-gradient(135deg, #111111 0%, #1a1a1a 100%)',
+              border: '1px solid rgba(0,200,5,0.15)',
             }}
           >
             <Typography
@@ -581,7 +581,7 @@ export default function TradeForm({
               </Typography>
             )}
 
-            <Divider sx={{ borderColor: 'rgba(201,168,76,0.1)', mb: 2 }} />
+            <Divider sx={{ borderColor: 'rgba(0,200,5,0.1)', mb: 2 }} />
 
             <Stack spacing={1.5}>
               <Box display="flex" justifyContent="space-between">
@@ -623,7 +623,7 @@ export default function TradeForm({
               )}
             </Stack>
 
-            <Divider sx={{ borderColor: 'rgba(201,168,76,0.1)', my: 2 }} />
+            <Divider sx={{ borderColor: 'rgba(0,200,5,0.1)', my: 2 }} />
 
             <Box display="flex" justifyContent="space-between" alignItems="center">
               <Typography variant="body1" color="text.secondary">

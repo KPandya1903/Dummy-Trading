@@ -36,23 +36,23 @@ const POPULAR_STOCKS = [
 
 const panelSx = {
   p: 3,
-  background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
-  border: '1px solid rgba(201,168,76,0.1)',
+  background: 'linear-gradient(135deg, #111111 0%, #1a1a1a 100%)',
+  border: '1px solid rgba(0,200,5,0.1)',
 };
 
 const MODELS = [
   {
-    icon: <TrendingUpIcon sx={{ fontSize: 40, color: '#c9a84c' }} />,
+    icon: <TrendingUpIcon sx={{ fontSize: 40, color: '#00C805' }} />,
     title: 'Linear Regression',
     desc: 'Fits a trend line through recent prices to project the direction forward.',
   },
   {
-    icon: <BarChartIcon sx={{ fontSize: 40, color: '#c9a84c' }} />,
+    icon: <BarChartIcon sx={{ fontSize: 40, color: '#00C805' }} />,
     title: 'Moving Average',
     desc: 'Weighted blend of SMA-20 and EMA-12 with recent momentum adjustment.',
   },
   {
-    icon: <PsychologyIcon sx={{ fontSize: 40, color: '#c9a84c' }} />,
+    icon: <PsychologyIcon sx={{ fontSize: 40, color: '#00C805' }} />,
     title: 'LSTM Neural Network',
     desc: 'Deep learning model trained on 60-day price windows with confidence bands.',
   },

@@ -34,23 +34,23 @@ const POPULAR_STOCKS = [
 
 const panelSx = {
   p: 3,
-  background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
-  border: '1px solid rgba(201,168,76,0.1)',
+  background: 'linear-gradient(135deg, #111111 0%, #1a1a1a 100%)',
+  border: '1px solid rgba(0,200,5,0.1)',
 };
 
 const FEATURES = [
   {
-    icon: <ShowChartIcon sx={{ fontSize: 40, color: '#c9a84c' }} />,
+    icon: <ShowChartIcon sx={{ fontSize: 40, color: '#00C805' }} />,
     title: 'RSI & MACD',
     desc: 'Momentum oscillators and trend-following indicators to gauge overbought/oversold conditions.',
   },
   {
-    icon: <CandlestickChartIcon sx={{ fontSize: 40, color: '#c9a84c' }} />,
+    icon: <CandlestickChartIcon sx={{ fontSize: 40, color: '#00C805' }} />,
     title: 'Bollinger Bands',
     desc: 'Volatility bands around a moving average to identify price breakouts and squeezes.',
   },
   {
-    icon: <TimelineIcon sx={{ fontSize: 40, color: '#c9a84c' }} />,
+    icon: <TimelineIcon sx={{ fontSize: 40, color: '#00C805' }} />,
     title: 'SMA & EMA',
     desc: 'Simple and exponential moving averages (20, 50, 200-day) to spot trend direction and crossovers.',
   },

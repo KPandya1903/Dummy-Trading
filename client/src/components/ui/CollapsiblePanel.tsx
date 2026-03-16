@@ -14,8 +14,8 @@ interface CollapsiblePanelProps {
 
 const panelSx = {
   p: 4,
-  background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
-  border: '1px solid rgba(201,168,76,0.1)',
+  background: 'linear-gradient(135deg, #111111 0%, #1a1a1a 100%)',
+  border: '1px solid rgba(0,200,5,0.1)',
   height: 'auto',
 };
 

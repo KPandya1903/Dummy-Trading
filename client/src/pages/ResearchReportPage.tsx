@@ -73,12 +73,12 @@ interface ResearchData {
 
 const panelSx = {
   p: 3,
-  background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
-  border: '1px solid rgba(201,168,76,0.1)',
+  background: 'linear-gradient(135deg, #111111 0%, #1a1a1a 100%)',
+  border: '1px solid rgba(0,200,5,0.1)',
 };
 
 const SENTIMENT_LABEL_COLORS: Record<string, string> = {
-  bullish: '#00c853',
+  bullish: '#00C805',
   bearish: '#ff5252',
   neutral: '#7a8ba5',
   mixed: '#ffab00',
@@ -214,9 +214,9 @@ export default function ResearchReportPage() {
                 {expandedNarrative.eventDate && (
                   <ReferenceLine
                     x={expandedNarrative.eventDate}
-                    stroke="#c9a84c"
+                    stroke="#00C805"
                     strokeDasharray="3 3"
-                    label={{ value: 'Event', fill: '#c9a84c', fontSize: 11 }}
+                    label={{ value: 'Event', fill: '#00C805', fontSize: 11 }}
                   />
                 )}
                 <Line type="monotone" dataKey="close" stroke={CHART_COLORS[0]} dot={false} strokeWidth={2} />
@@ -379,7 +379,7 @@ export default function ResearchReportPage() {
                   <ReferenceLine
                     key={n.id}
                     x={n.eventDate!}
-                    stroke={n.sentiment === 'positive' ? '#00c853' : n.sentiment === 'negative' ? '#ff5252' : '#7a8ba5'}
+                    stroke={n.sentiment === 'positive' ? '#00C805' : n.sentiment === 'negative' ? '#ff5252' : '#7a8ba5'}
                     strokeDasharray="3 3"
                   />
                 ))}

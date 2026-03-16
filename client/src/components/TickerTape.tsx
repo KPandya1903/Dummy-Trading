@@ -32,11 +32,11 @@ export default function TickerTape() {
       aria-label="Live market ticker"
       sx={{
         overflow: 'hidden',
-        bgcolor: '#060e1a',
+        bgcolor: '#0d0d0d',
         color: 'text.primary',
         py: 0.5,
         position: 'relative',
-        borderBottom: '1px solid rgba(201,168,76,0.08)',
+        borderBottom: '1px solid rgba(0,200,5,0.08)',
         '&::before, &::after': {
           content: '""',
           position: 'absolute',
@@ -45,8 +45,8 @@ export default function TickerTape() {
           width: 40,
           zIndex: 1,
         },
-        '&::before': { left: 0, background: 'linear-gradient(to right, #060e1a, transparent)' },
-        '&::after': { right: 32, width: 32, background: 'linear-gradient(to left, #060e1a, transparent)' },
+        '&::before': { left: 0, background: 'linear-gradient(to right, #0d0d0d, transparent)' },
+        '&::after': { right: 32, width: 32, background: 'linear-gradient(to left, #0d0d0d, transparent)' },
       }}
     >
       <Box

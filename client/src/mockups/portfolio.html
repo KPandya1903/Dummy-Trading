@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portfolio Detail — Dummy Trading</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Inter, -apple-system, sans-serif; background: #0a0a0a; color: #fff; display: flex; height: 100vh; overflow: hidden; }
+
+  .sidebar { width: 220px; min-width: 220px; background: #0a0a0a; border-right: 1px solid #1e1e1e; padding: 0; display: flex; flex-direction: column; }
+  .sidebar-logo { padding: 18px 16px 14px; font-size: 16px; font-weight: 700; color: #00C805; border-bottom: 1px solid #1e1e1e; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 16px; font-size: 13px; color: #8a8a8a; border-left: 3px solid transparent; }
+  .nav-item.active { color: #00C805; border-left-color: #00C805; background: rgba(0,200,5,0.06); font-weight: 600; }
+  .nav-dot { width: 6px; height: 6px; background: #333; border-radius: 50%; }
+  .nav-dot.active { background: #00C805; }
+  .section-label { padding: 12px 16px 4px; font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #444; }
+  .divider { height: 1px; background: #1e1e1e; margin: 6px 0; }
+
+  .main { flex: 1; overflow-y: auto; padding: 32px 40px; }
+  .breadcrumb { font-size: 12px; color: #444; margin-bottom: 20px; }
+  .breadcrumb a { color: #555; text-decoration: none; }
+  .breadcrumb span { margin: 0 6px; }
+
+  .up { color: #00C805; }
+  .down { color: #ff5252; }
+
+  /* Hero */
+  .hero { margin-bottom: 28px; display: flex; align-items: flex-start; justify-content: space-between; }
+  .hero-left {}
+  .portfolio-name { font-size: 13px; color: #555; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .portfolio-value { font-family: 'Playfair Display', serif; font-size: 40px; font-weight: 700; letter-spacing: -1px; }
+  .portfolio-change { font-size: 14px; font-weight: 500; margin-top: 6px; }
+  .hero-actions { display: flex; gap: 8px; }
+  .btn { padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
+  .btn-primary { background: #00C805; color: #000; }
+  .btn-outline { background: transparent; border: 1px solid #333; color: #aaa; }
+
+  /* Chart */
+  .chart-box { background: #0a0a0a; border: 1px solid #1e1e1e; border-radius: 8px; padding: 16px; margin-bottom: 24px; }
+  .chart-range { display: flex; gap: 4px; margin-bottom: 12px; }
+  .range-pill { padding: 3px 10px; font-size: 11px; font-weight: 500; color: #555; background: #111; border-radius: 20px; border: none; cursor: pointer; }
+  .range-pill.active { color: #fff; background: #222; }
+  .chart-area { height: 120px; }
+
+  /* Stats row */
+  .stats-row { display: flex; gap: 1px; background: #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 24px; }
+  .stat-cell { flex: 1; background: #111; padding: 12px 14px; }
+  .stat-label { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+  .stat-value { font-size: 15px; font-weight: 600; color: #fff; }
+
+  /* Positions table */
+  .section-header { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #555; margin-bottom: 12px; }
+  .table-header { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr 80px; padding: 6px 0; border-bottom: 1px solid #1e1e1e; }
+  .table-header span { font-size: 10px; color: #444; text-transform: uppercase; letter-spacing: 0.05em; }
+  .table-header span:not(:first-child) { text-align: right; }
+  .pos-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr 80px;
+    padding: 10px 0;
+    border-bottom: 1px solid #0f0f0f;
+    align-items: center;
+    cursor: pointer;
+  }
+  .pos-row:hover { background: #0d0d0d; padding: 10px 6px; margin: 0 -6px; border-radius: 4px; }
+  .pos-ticker { font-size: 14px; font-weight: 600; }
+  .pos-name { font-size: 11px; color: #444; margin-top: 1px; }
+  .pos-num { text-align: right; font-size: 13px; color: #aaa; }
+  .pos-val { text-align: right; font-size: 14px; font-weight: 500; }
+  .pct-badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+  .pct-badge.up { color: #00C805; background: rgba(0,200,5,0.1); }
+  .pct-badge.down { color: #ff5252; background: rgba(255,82,82,0.1); }
+  .trade-btn { text-align: right; }
+  .mini-btn { padding: 4px 10px; font-size: 11px; background: #1a1a1a; border: 1px solid #222; border-radius: 6px; color: #8a8a8a; cursor: pointer; }
+
+  /* Pending orders */
+  .order-row {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #0f0f0f;
+    gap: 12px;
+  }
+  .order-side-buy { background: rgba(0,200,5,0.12); color: #00C805; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .order-side-sell { background: rgba(255,82,82,0.12); color: #ff5252; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .order-details { flex: 1; font-size: 13px; color: #aaa; }
+  .order-target { font-size: 13px; font-weight: 500; color: #fff; }
+  .order-cancel { font-size: 12px; color: #ff5252; cursor: pointer; padding: 4px 8px; border: 1px solid rgba(255,82,82,0.2); border-radius: 6px; background: transparent; }
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-logo">Dummy Trading</div>
+  <div class="nav-item"><div class="nav-dot"></div> Dashboard</div>
+  <div class="nav-item"><div class="nav-dot"></div> Market</div>
+  <div class="nav-item active"><div class="nav-dot active"></div> Portfolios</div>
+  <div class="divider"></div>
+  <div class="section-label">Explore</div>
+  <div class="nav-item"><div class="nav-dot"></div> Analysis</div>
+  <div class="nav-item"><div class="nav-dot"></div> Screener</div>
+  <div class="divider"></div>
+  <div class="section-label">More</div>
+  <div class="nav-item"><div class="nav-dot"></div> Watchlist</div>
+  <div class="nav-item"><div class="nav-dot"></div> Leaderboard</div>
+</nav>
+
+<div class="main">
+
+  <div class="breadcrumb">
+    <a href="#">Portfolios</a><span>›</span><span style="color:#8a8a8a">Tech Growth</span>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-left">
+      <div class="portfolio-name">Tech Growth Portfolio</div>
+      <div class="portfolio-value">$24,831.50</div>
+      <div class="portfolio-change up">▲ +$3,831.50 (+18.2%) all time &nbsp;·&nbsp; +$312.40 (+1.27%) today</div>
+    </div>
+    <div class="hero-actions">
+      <button class="btn btn-outline">Trade History</button>
+      <button class="btn btn-primary">+ New Trade</button>
+    </div>
+  </div>
+
+  <!-- Chart -->
+  <div class="chart-box">
+    <div class="chart-range">
+      <button class="range-pill">1D</button>
+      <button class="range-pill active">1M</button>
+      <button class="range-pill">3M</button>
+      <button class="range-pill">1Y</button>
+      <button class="range-pill">ALL</button>
+    </div>
+    <div class="chart-area">
+      <svg width="100%" height="100%" viewBox="0 0 800 120" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="g3" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#00C805" stop-opacity="0.2"/>
+            <stop offset="100%" stop-color="#00C805" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d="M0,100 C60,95 100,88 160,80 C220,72 260,76 320,64 C380,52 420,56 480,44 C540,32 580,36 640,24 C700,12 740,16 800,8 L800,120 L0,120 Z" fill="url(#g3)"/>
+        <path d="M0,100 C60,95 100,88 160,80 C220,72 260,76 320,64 C380,52 420,56 480,44 C540,32 580,36 640,24 C700,12 740,16 800,8" fill="none" stroke="#00C805" stroke-width="2"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-cell"><div class="stat-label">Cash</div><div class="stat-value">$4,218.20</div></div>
+    <div class="stat-cell"><div class="stat-label">Invested</div><div class="stat-value">$20,613.30</div></div>
+    <div class="stat-cell"><div class="stat-label">Total Return</div><div class="stat-value up">+$3,831.50</div></div>
+    <div class="stat-cell"><div class="stat-label">Return %</div><div class="stat-value up">+18.2%</div></div>
+    <div class="stat-cell"><div class="stat-label">Positions</div><div class="stat-value">6</div></div>
+  </div>
+
+  <!-- Positions -->
+  <div class="section-header" style="margin-top:4px">Positions</div>
+  <div class="table-header">
+    <span>Stock</span>
+    <span>Shares</span>
+    <span>Avg Cost</span>
+    <span>Current Price</span>
+    <span>Return</span>
+    <span></span>
+  </div>
+
+  <div class="pos-row">
+    <div><div class="pos-ticker">AAPL</div><div class="pos-name">Apple Inc.</div></div>
+    <div class="pos-num">10</div>
+    <div class="pos-num">$185.20</div>
+    <div class="pos-val">$213.42</div>
+    <div class="pos-num"><span class="pct-badge up">+15.2%</span></div>
+    <div class="trade-btn"><button class="mini-btn">Trade</button></div>
+  </div>
+  <div class="pos-row">
+    <div><div class="pos-ticker">NVDA</div><div class="pos-name">NVIDIA Corp.</div></div>
+    <div class="pos-num">5</div>
+    <div class="pos-num">$620.00</div>
+    <div class="pos-val">$891.20</div>
+    <div class="pos-num"><span class="pct-badge up">+43.7%</span></div>
+    <div class="trade-btn"><button class="mini-btn">Trade</button></div>
+  </div>
+  <div class="pos-row">
+    <div><div class="pos-ticker">TSLA</div><div class="pos-name">Tesla Inc.</div></div>
+    <div class="pos-num">8</div>
+    <div class="pos-num">$266.40</div>
+    <div class="pos-val">$248.10</div>
+    <div class="pos-num"><span class="pct-badge down">-6.9%</span></div>
+    <div class="trade-btn"><button class="mini-btn">Trade</button></div>
+  </div>
+  <div class="pos-row">
+    <div><div class="pos-ticker">MSFT</div><div class="pos-name">Microsoft Corp.</div></div>
+    <div class="pos-num">3</div>
+    <div class="pos-num">$390.00</div>
+    <div class="pos-val">$412.50</div>
+    <div class="pos-num"><span class="pct-badge up">+5.8%</span></div>
+    <div class="trade-btn"><button class="mini-btn">Trade</button></div>
+  </div>
+
+  <!-- Pending orders -->
+  <div class="section-header" style="margin-top:28px">Pending Orders</div>
+  <div class="order-row">
+    <span class="order-side-buy">BUY</span>
+    <div class="order-details">5 × GOOG · LIMIT</div>
+    <div class="order-target">Target: $165.00</div>
+    <button class="order-cancel">Cancel</button>
+  </div>
+  <div class="order-row">
+    <span class="order-side-sell">SELL</span>
+    <div class="order-details">3 × TSLA · STOP</div>
+    <div class="order-target">Target: $240.00</div>
+    <button class="order-cancel">Cancel</button>
+  </div>
+
+</div>
+</body>
+</html>

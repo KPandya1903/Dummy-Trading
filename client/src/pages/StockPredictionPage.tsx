@@ -122,11 +122,11 @@ const HORIZONS = [
 
 const panelSx = {
   p: 4,
-  background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
-  border: '1px solid rgba(201,168,76,0.1)',
+  background: 'linear-gradient(135deg, #111111 0%, #1a1a1a 100%)',
+  border: '1px solid rgba(0,200,5,0.1)',
 };
 
-const ENSEMBLE_COLOR = '#c9a84c';
+const ENSEMBLE_COLOR = '#00C805';
 
 function fmt(n: number): string {
   return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -208,9 +208,9 @@ function McTooltip({ active, payload, label, dailyStats }: {
       </Typography>
       {[
         { label: 'P95', value: stat.p95, color: 'rgba(61,142,247,0.9)' },
-        { label: 'P75', value: stat.p75, color: '#c9a84c' },
-        { label: 'Median', value: stat.median, color: '#c9a84c', bold: true },
-        { label: 'P25', value: stat.p25, color: '#c9a84c' },
+        { label: 'P75', value: stat.p75, color: '#00C805' },
+        { label: 'Median', value: stat.median, color: '#00C805', bold: true },
+        { label: 'P25', value: stat.p25, color: '#00C805' },
         { label: 'P5', value: stat.p5, color: 'rgba(61,142,247,0.9)' },
       ].map(({ label: l, value, color, bold }) => (
         <Box key={l} display="flex" justifyContent="space-between" gap={2}>
@@ -341,12 +341,12 @@ function ModelBuilderPanel({
         minWidth: 120,
         p: 1.5,
         textAlign: 'center',
-        border: active ? '1px solid #c9a84c' : '1px solid rgba(201,168,76,0.15)',
+        border: active ? '1px solid #00C805' : '1px solid rgba(0,200,5,0.15)',
         borderRadius: 2,
         cursor: 'pointer',
-        background: active ? 'rgba(201,168,76,0.08)' : 'transparent',
+        background: active ? 'rgba(0,200,5,0.08)' : 'transparent',
         transition: 'all 0.15s ease',
-        '&:hover': { borderColor: 'rgba(201,168,76,0.4)', background: 'rgba(201,168,76,0.04)' },
+        '&:hover': { borderColor: 'rgba(0,200,5,0.4)', background: 'rgba(0,200,5,0.04)' },
       }}
     >
       <Typography variant="body2" fontWeight={600}>{title}</Typography>
@@ -355,7 +355,7 @@ function ModelBuilderPanel({
   );
 
   return (
-    <Paper variant="outlined" sx={{ ...panelSx, mb: 3, border: '1px solid rgba(201,168,76,0.2)' }}>
+    <Paper variant="outlined" sx={{ ...panelSx, mb: 3, border: '1px solid rgba(0,200,5,0.2)' }}>
       {/* Header */}
       <Box
         display="flex"
@@ -365,7 +365,7 @@ function ModelBuilderPanel({
         onClick={() => setOpen((o) => !o)}
       >
         <Box display="flex" alignItems="center" gap={1.5}>
-          <AutoFixHighIcon sx={{ color: '#c9a84c', fontSize: 22 }} />
+          <AutoFixHighIcon sx={{ color: '#00C805', fontSize: 22 }} />
           <Box>
             <Typography variant="caption" fontWeight={700}
               sx={{ textTransform: 'uppercase', letterSpacing: '0.1em', color: '#7a8ba5', display: 'block' }}>
@@ -374,13 +374,13 @@ function ModelBuilderPanel({
             <Typography variant="h6" fontWeight={700}>Build Your Own Model</Typography>
           </Box>
         </Box>
-        <IconButton size="small" sx={{ color: '#c9a84c' }}>
+        <IconButton size="small" sx={{ color: '#00C805' }}>
           <ExpandMoreIcon sx={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.25s ease' }} />
         </IconButton>
       </Box>
 
       <Collapse in={open}>
-        <Divider sx={{ borderColor: 'rgba(201,168,76,0.1)', my: 3 }} />
+        <Divider sx={{ borderColor: 'rgba(0,200,5,0.1)', my: 3 }} />
 
         {/* ── 01 Market Regime ─────────────────────────────── */}
         {sectionLabel('01 — Market Regime')}
@@ -398,11 +398,11 @@ function ModelBuilderPanel({
               onClick={() => applyRegime(key)}
               sx={{
                 flex: '1 1 140px', minWidth: 140, p: 2,
-                border: state.regime === key ? '1px solid #c9a84c' : '1px solid rgba(201,168,76,0.15)',
+                border: state.regime === key ? '1px solid #00C805' : '1px solid rgba(0,200,5,0.15)',
                 borderRadius: 2, cursor: 'pointer',
-                background: state.regime === key ? 'rgba(201,168,76,0.08)' : 'transparent',
+                background: state.regime === key ? 'rgba(0,200,5,0.08)' : 'transparent',
                 transition: 'all 0.15s ease',
-                '&:hover': { borderColor: 'rgba(201,168,76,0.4)', background: 'rgba(201,168,76,0.04)' },
+                '&:hover': { borderColor: 'rgba(0,200,5,0.4)', background: 'rgba(0,200,5,0.04)' },
               }}
             >
               <Typography variant="body2" fontWeight={600}>{title}</Typography>
@@ -411,7 +411,7 @@ function ModelBuilderPanel({
           ))}
         </Stack>
 
-        <Divider sx={{ borderColor: 'rgba(201,168,76,0.07)', mb: 3 }} />
+        <Divider sx={{ borderColor: 'rgba(0,200,5,0.07)', mb: 3 }} />
 
         {/* ── 02 Models & Weights ───────────────────────────── */}
         {sectionLabel('02 — Model Selection & Weights')}
@@ -428,9 +428,9 @@ function ModelBuilderPanel({
               onClick={() => toggleModel(key)}
               variant={state.enabledModels[key] ? 'filled' : 'outlined'}
               sx={{
-                borderColor: state.enabledModels[key] ? '#c9a84c' : 'rgba(201,168,76,0.25)',
-                color: state.enabledModels[key] ? '#0b1426' : '#7a8ba5',
-                bgcolor: state.enabledModels[key] ? '#c9a84c' : 'transparent',
+                borderColor: state.enabledModels[key] ? '#00C805' : 'rgba(0,200,5,0.25)',
+                color: state.enabledModels[key] ? '#0a0a0a' : '#7a8ba5',
+                bgcolor: state.enabledModels[key] ? '#00C805' : 'transparent',
                 fontWeight: 600,
                 '&:hover': { opacity: 0.85 },
               }}
@@ -447,7 +447,7 @@ function ModelBuilderPanel({
             { value: 'custom',  label: 'Custom weights'         },
           ] as const).map(({ value, label }) => (
             <FormControlLabel key={value} value={value}
-              control={<Radio size="small" sx={{ color: '#c9a84c', '&.Mui-checked': { color: '#c9a84c' } }} />}
+              control={<Radio size="small" sx={{ color: '#00C805', '&.Mui-checked': { color: '#00C805' } }} />}
               label={<Typography variant="body2">{label}</Typography>}
             />
           ))}
@@ -470,14 +470,14 @@ function ModelBuilderPanel({
                     <Box display="flex" justifyContent="space-between" mb={0.5}>
                       <Typography variant="caption" fontWeight={600}>{label}</Typography>
                       <Typography variant="caption" fontWeight={700}
-                        sx={{ color: disabled ? 'text.disabled' : '#c9a84c' }}>
+                        sx={{ color: disabled ? 'text.disabled' : '#00C805' }}>
                         {disabled ? '0% (off)' : `${normalized.toFixed(0)}%`}
                       </Typography>
                     </Box>
                     <Slider value={disabled ? 0 : state.customWeights[key]} min={0} max={100}
                       disabled={disabled}
                       onChange={(_e, v) => setCustomWeight(key, v as number)}
-                      sx={{ color: '#c9a84c', '& .MuiSlider-thumb': { width: 14, height: 14 }, '& .MuiSlider-rail': { opacity: 0.3 } }}
+                      sx={{ color: '#00C805', '& .MuiSlider-thumb': { width: 14, height: 14 }, '& .MuiSlider-rail': { opacity: 0.3 } }}
                     />
                   </Box>
                 );
@@ -489,7 +489,7 @@ function ModelBuilderPanel({
           );
         })()}
 
-        <Divider sx={{ borderColor: 'rgba(201,168,76,0.07)', mb: 3 }} />
+        <Divider sx={{ borderColor: 'rgba(0,200,5,0.07)', mb: 3 }} />
 
         {/* ── 03 Bias & Risk ───────────────────────────────── */}
         {sectionLabel('03 — Market Bias & Risk')}
@@ -498,7 +498,7 @@ function ModelBuilderPanel({
           <Box display="flex" justifyContent="space-between" mb={1}>
             <Typography variant="body2" fontWeight={600}>Sentiment Bias</Typography>
             <Typography variant="body2" fontWeight={700} sx={{
-              color: state.sentimentPct < 35 ? '#ff5252' : state.sentimentPct > 65 ? '#00c853' : '#c9a84c',
+              color: state.sentimentPct < 35 ? '#ff5252' : state.sentimentPct > 65 ? '#00C805' : '#00C805',
             }}>
               {state.sentimentPct < 35 ? 'Bearish' : state.sentimentPct > 65 ? 'Bullish' : 'Neutral'}{' '}
               ({state.sentimentPct})
@@ -507,7 +507,7 @@ function ModelBuilderPanel({
           <Slider value={state.sentimentPct} min={0} max={100}
             onChange={(_e, v) => setState((p) => ({ ...p, sentimentPct: v as number, regime: null }))}
             sx={{
-              color: state.sentimentPct < 35 ? '#ff5252' : state.sentimentPct > 65 ? '#00c853' : '#c9a84c',
+              color: state.sentimentPct < 35 ? '#ff5252' : state.sentimentPct > 65 ? '#00C805' : '#00C805',
               '& .MuiSlider-thumb': { width: 16, height: 16 },
             }}
           />
@@ -543,7 +543,7 @@ function ModelBuilderPanel({
           </Stack>
         </Box>
 
-        <Divider sx={{ borderColor: 'rgba(201,168,76,0.07)', mb: 3 }} />
+        <Divider sx={{ borderColor: 'rgba(0,200,5,0.07)', mb: 3 }} />
 
         {/* ── 04 Run & Compare ─────────────────────────────── */}
         {sectionLabel('04 — Run & Compare')}
@@ -555,14 +555,14 @@ function ModelBuilderPanel({
           onClick={handleRun}
           sx={{
             mb: 3, py: 1.5, fontSize: '1rem', fontWeight: 700,
-            bgcolor: '#c9a84c', color: '#0b1426',
+            bgcolor: '#00C805', color: '#0a0a0a',
             '&:hover': { bgcolor: '#a88a3a' },
-            '&:disabled': { bgcolor: 'rgba(201,168,76,0.2)', color: 'rgba(201,168,76,0.4)' },
+            '&:disabled': { bgcolor: 'rgba(0,200,5,0.2)', color: 'rgba(0,200,5,0.4)' },
           }}
         >
           {loading ? (
             <Box display="flex" alignItems="center" gap={1.5}>
-              <CircularProgress size={18} sx={{ color: '#c9a84c' }} />
+              <CircularProgress size={18} sx={{ color: '#00C805' }} />
               Training custom model…
             </Box>
           ) : 'Run My Model'}
@@ -617,9 +617,9 @@ function ModelBuilderPanel({
                   <XAxis dataKey="date" tickFormatter={(d: string) => d.slice(5)} interval="preserveStartEnd" minTickGap={40} tick={{ fill: CHART_AXIS_COLOR }} fontSize={11} />
                   <YAxis domain={['auto', 'auto']} tick={{ fill: CHART_AXIS_COLOR }} fontSize={11} />
                   <Tooltip contentStyle={CHART_TOOLTIP_STYLE} formatter={(v, name) => [`$${Number(v).toFixed(2)}`, name]} />
-                  <ReferenceLine y={currentPrice} stroke="rgba(201,168,76,0.3)" strokeDasharray="3 3" />
-                  <Area type="monotone" dataKey="stdUpper"    stroke="none" fill="rgba(201,168,76,0.1)"  legendType="none" />
-                  <Area type="monotone" dataKey="stdLower"    stroke="none" fill="rgba(201,168,76,0.1)"  legendType="none" />
+                  <ReferenceLine y={currentPrice} stroke="rgba(0,200,5,0.3)" strokeDasharray="3 3" />
+                  <Area type="monotone" dataKey="stdUpper"    stroke="none" fill="rgba(0,200,5,0.1)"  legendType="none" />
+                  <Area type="monotone" dataKey="stdLower"    stroke="none" fill="rgba(0,200,5,0.1)"  legendType="none" />
                   <Area type="monotone" dataKey="customUpper" stroke="none" fill="rgba(255,64,129,0.1)"  legendType="none" />
                   <Area type="monotone" dataKey="customLower" stroke="none" fill="rgba(255,64,129,0.1)"  legendType="none" />
                   <Line type="monotone" dataKey="standard" stroke={ENSEMBLE_COLOR} strokeWidth={2} strokeDasharray="6 3" dot={false} name="Standard" />
@@ -644,7 +644,7 @@ function ModelBuilderPanel({
                             {customPct >= 0 ? '+' : ''}{customPct.toFixed(2)}%
                           </Typography>
                         </Box>
-                        <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(201,168,76,0.1)', mx: 2 }} />
+                        <Divider orientation="vertical" flexItem sx={{ borderColor: 'rgba(0,200,5,0.1)', mx: 2 }} />
                         <Box textAlign="right">
                           <Typography variant="caption" sx={{ color: ENSEMBLE_COLOR, fontWeight: 700, display: 'block' }}>STANDARD</Typography>
                           <Typography variant="h5" fontWeight={700} sx={{ color: ENSEMBLE_COLOR }}>${fmt(standardEnd)}</Typography>
@@ -885,16 +885,16 @@ export default function StockPredictionPage() {
               formatter={(value) => [`$${Number(value).toFixed(2)}`, undefined]}
             />
             <Legend />
-            <ReferenceLine y={data.currentPrice} stroke="rgba(201,168,76,0.4)" strokeDasharray="3 3" label={{ value: 'Current', fill: CHART_AXIS_COLOR, fontSize: 11 }} />
+            <ReferenceLine y={data.currentPrice} stroke="rgba(0,200,5,0.4)" strokeDasharray="3 3" label={{ value: 'Current', fill: CHART_AXIS_COLOR, fontSize: 11 }} />
 
             {ens && (
-              <Area type="monotone" dataKey="ensUpper" stroke="none" fill="rgba(201,168,76,0.12)" name="Ensemble Band" />
+              <Area type="monotone" dataKey="ensUpper" stroke="none" fill="rgba(0,200,5,0.12)" name="Ensemble Band" />
             )}
             {ens && (
-              <Area type="monotone" dataKey="ensLower" stroke="none" fill="rgba(201,168,76,0.12)" legendType="none" />
+              <Area type="monotone" dataKey="ensLower" stroke="none" fill="rgba(0,200,5,0.12)" legendType="none" />
             )}
-            <Area type="monotone" dataKey="lstmUpper" stroke="none" fill="rgba(0,200,83,0.1)" name="LSTM Band" />
-            <Area type="monotone" dataKey="lstmLower" stroke="none" fill="rgba(0,200,83,0.1)" legendType="none" />
+            <Area type="monotone" dataKey="lstmUpper" stroke="none" fill="rgba(0,200,5,0.1)" name="LSTM Band" />
+            <Area type="monotone" dataKey="lstmLower" stroke="none" fill="rgba(0,200,5,0.1)" legendType="none" />
 
             <Line type="monotone" dataKey="historical" stroke={CHART_COLORS[0]} strokeWidth={2} dot={false} name="Historical" />
             <Line type="monotone" dataKey="lr" stroke={CHART_COLORS[1]} strokeWidth={1.5} strokeDasharray="5 5" dot={false} name="Holt-Winters" />
@@ -924,7 +924,7 @@ export default function StockPredictionPage() {
           {/* Summary stat cards */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid item xs={12} sm={4}>
-              <Card sx={{ ...panelSx, border: '1px solid rgba(201,168,76,0.15)' }}>
+              <Card sx={{ ...panelSx, border: '1px solid rgba(0,200,5,0.15)' }}>
                 <CardContent>
                   <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase' }}>
                     Expected Price
@@ -947,7 +947,7 @@ export default function StockPredictionPage() {
             </Grid>
 
             <Grid item xs={12} sm={4}>
-              <Card sx={{ ...panelSx, border: '1px solid rgba(201,168,76,0.15)' }}>
+              <Card sx={{ ...panelSx, border: '1px solid rgba(0,200,5,0.15)' }}>
                 <CardContent>
                   <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase' }}>
                     Probability Up
@@ -957,7 +957,7 @@ export default function StockPredictionPage() {
                     fontWeight={700}
                     sx={{
                       mt: 1,
-                      color: mc.summary.probAboveCurrentPrice >= 0.5 ? '#00c853' : '#ff5252',
+                      color: mc.summary.probAboveCurrentPrice >= 0.5 ? '#00C805' : '#ff5252',
                     }}
                   >
                     {(mc.summary.probAboveCurrentPrice * 100).toFixed(1)}%
@@ -973,7 +973,7 @@ export default function StockPredictionPage() {
             </Grid>
 
             <Grid item xs={12} sm={4}>
-              <Card sx={{ ...panelSx, border: '1px solid rgba(201,168,76,0.15)' }}>
+              <Card sx={{ ...panelSx, border: '1px solid rgba(0,200,5,0.15)' }}>
                 <CardContent>
                   <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase' }}>
                     Simulated Range
@@ -984,7 +984,7 @@ export default function StockPredictionPage() {
                   <Typography variant="caption" color="text.secondary" display="block" mt={0.5}>
                     extreme min – max at horizon end
                   </Typography>
-                  <Divider sx={{ borderColor: 'rgba(201,168,76,0.1)', my: 1 }} />
+                  <Divider sx={{ borderColor: 'rgba(0,200,5,0.1)', my: 1 }} />
                   <Box display="flex" justifyContent="space-between">
                     <Typography variant="caption" color="text.secondary">Median</Typography>
                     <Typography variant="caption" fontWeight={600}>
@@ -1071,7 +1071,7 @@ export default function StockPredictionPage() {
                 type="monotone"
                 dataKey="innerBand"
                 stroke="none"
-                fill="rgba(201,168,76,0.28)"
+                fill="rgba(0,200,5,0.28)"
                 name="P25–P75"
                 isAnimationActive={false}
               />
@@ -1090,7 +1090,7 @@ export default function StockPredictionPage() {
               {/* Current price reference */}
               <ReferenceLine
                 y={data.currentPrice}
-                stroke="rgba(201,168,76,0.5)"
+                stroke="rgba(0,200,5,0.5)"
                 strokeDasharray="4 4"
                 label={{ value: 'Current', fill: CHART_AXIS_COLOR, fontSize: 10 }}
               />
@@ -1173,7 +1173,7 @@ export default function StockPredictionPage() {
           <Card sx={{
             ...panelSx,
             height: '100%',
-            border: '1px solid rgba(201,168,76,0.3)',
+            border: '1px solid rgba(0,200,5,0.3)',
           }}>
             <CardContent>
               <Typography variant="caption" fontWeight={700} sx={{ textTransform: 'uppercase', color: ENSEMBLE_COLOR }}>
@@ -1200,7 +1200,7 @@ export default function StockPredictionPage() {
                           flex: 1,
                           height: 6,
                           borderRadius: 3,
-                          bgcolor: 'rgba(201,168,76,0.15)',
+                          bgcolor: 'rgba(0,200,5,0.15)',
                           '& .MuiLinearProgress-bar': { bgcolor: ENSEMBLE_COLOR },
                         }}
                       />

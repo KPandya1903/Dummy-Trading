@@ -164,7 +164,7 @@ export default function PortfolioDetailPage() {
         </Box>
         <Box>
           <Typography variant="overline">Total Value</Typography>
-          <Typography variant="h6">${fmt(summary.totalValue)}</Typography>
+          <Typography variant="h6" sx={{ fontFamily: '"Playfair Display", serif' }}>${fmt(summary.totalValue)}</Typography>
         </Box>
         <Box>
           <Typography variant="overline">Realized P&amp;L</Typography>

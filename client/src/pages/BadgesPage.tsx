@@ -58,7 +58,7 @@ export default function BadgesPage() {
                 p: 2,
                 textAlign: 'center',
                 opacity: b.earned ? 1 : 0.3,
-                bgcolor: b.earned ? 'rgba(201,168,76,0.08)' : 'transparent',
+                bgcolor: b.earned ? 'rgba(0,200,5,0.08)' : 'transparent',
                 transition: 'opacity 0.3s',
               }}
             >

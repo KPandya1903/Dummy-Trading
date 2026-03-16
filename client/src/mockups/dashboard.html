@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Dummy Trading</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Inter, -apple-system, sans-serif; background: #0a0a0a; color: #fff; display: flex; height: 100vh; overflow: hidden; }
+
+  /* Sidebar (collapsed for space, abbreviated) */
+  .sidebar { width: 220px; min-width: 220px; background: #0a0a0a; border-right: 1px solid #1e1e1e; padding: 0; display: flex; flex-direction: column; }
+  .sidebar-logo { padding: 18px 16px 14px; font-size: 16px; font-weight: 700; color: #00C805; border-bottom: 1px solid #1e1e1e; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 16px; font-size: 13px; color: #8a8a8a; cursor: pointer; border-left: 3px solid transparent; }
+  .nav-item.active { color: #00C805; border-left-color: #00C805; background: rgba(0,200,5,0.06); font-weight: 600; }
+  .nav-item:hover { color: #ddd; background: #111; }
+  .nav-dot { width: 6px; height: 6px; background: #333; border-radius: 50%; }
+  .nav-dot.active { background: #00C805; }
+  .section-label { padding: 12px 16px 4px; font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #444; }
+  .divider { height: 1px; background: #1e1e1e; margin: 6px 0; }
+
+  /* Main */
+  .main { flex: 1; overflow-y: auto; padding: 32px 40px; }
+
+  /* Hero */
+  .hero { margin-bottom: 32px; }
+  .hero-label { font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .hero-value { font-family: 'Playfair Display', serif; font-size: 42px; font-weight: 700; color: #fff; letter-spacing: -1px; line-height: 1; }
+  .hero-change { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 14px; font-weight: 500; }
+  .hero-change.up { color: #00C805; }
+  .hero-change.down { color: #ff5252; }
+
+  /* Chart */
+  .chart-container {
+    background: #0a0a0a;
+    border: 1px solid #1e1e1e;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 28px;
+  }
+  .chart-range { display: flex; gap: 4px; margin-bottom: 16px; }
+  .range-pill {
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #555;
+    background: #111;
+    border-radius: 20px;
+    cursor: pointer;
+    border: none;
+  }
+  .range-pill.active { color: #000; background: #00C805; }
+  .chart-area { height: 160px; position: relative; overflow: hidden; }
+  /* SVG sparkline */
+  .chart-svg { width: 100%; height: 100%; }
+
+  /* Section header */
+  .section-header {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 12px;
+  }
+
+  /* Stats row */
+  .stats-row { display: flex; gap: 12px; margin-bottom: 28px; }
+  .stat-card {
+    flex: 1;
+    background: #111;
+    border: 1px solid #1e1e1e;
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .stat-label { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .stat-value { font-size: 18px; font-weight: 600; color: #fff; }
+  .stat-value.up { color: #00C805; }
+  .stat-value.down { color: #ff5252; }
+  .stat-sub { font-size: 11px; color: #555; margin-top: 2px; }
+
+  /* Holdings */
+  .holdings-list { margin-bottom: 28px; }
+  .holding-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #141414;
+    gap: 12px;
+  }
+  .holding-row:last-child { border-bottom: none; }
+  .ticker-badge {
+    width: 36px; height: 36px;
+    background: #1a1a1a;
+    border: 1px solid #222;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: #fff;
+    flex-shrink: 0;
+  }
+  .holding-info { flex: 1; }
+  .holding-ticker { font-size: 14px; font-weight: 600; color: #fff; }
+  .holding-name { font-size: 12px; color: #555; margin-top: 1px; }
+  .holding-shares { font-size: 12px; color: #555; text-align: right; }
+  .holding-value { font-size: 14px; font-weight: 500; color: #fff; text-align: right; min-width: 80px; }
+  .holding-pct {
+    min-width: 60px;
+    text-align: right;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+  .holding-pct.up { color: #00C805; background: rgba(0,200,5,0.1); }
+  .holding-pct.down { color: #ff5252; background: rgba(255,82,82,0.1); }
+
+  /* Collapsible panel */
+  .panel {
+    background: #111;
+    border: 1px solid #1e1e1e;
+    border-radius: 8px;
+    margin-bottom: 12px;
+  }
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    cursor: pointer;
+  }
+  .panel-title { font-size: 12px; font-weight: 600; color: #8a8a8a; text-transform: uppercase; letter-spacing: 0.08em; }
+  .panel-chevron { color: #444; font-size: 18px; }
+  .panel-body { padding: 0 16px 14px; }
+  .stat-row-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #141414; }
+  .stat-row-item:last-child { border-bottom: none; }
+  .stat-row-label { font-size: 13px; color: #555; }
+  .stat-row-value { font-size: 13px; font-weight: 500; color: #fff; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar (abbreviated) -->
+<nav class="sidebar">
+  <div class="sidebar-logo">Dummy Trading</div>
+  <div class="nav-item active">
+    <div class="nav-dot active"></div> Dashboard
+  </div>
+  <div class="nav-item">
+    <div class="nav-dot"></div> Market
+  </div>
+  <div class="nav-item">
+    <div class="nav-dot"></div> Portfolios
+  </div>
+  <div class="divider"></div>
+  <div class="section-label">Explore</div>
+  <div class="nav-item"><div class="nav-dot"></div> Analysis</div>
+  <div class="nav-item"><div class="nav-dot"></div> Prediction</div>
+  <div class="nav-item"><div class="nav-dot"></div> Screener</div>
+  <div class="nav-item"><div class="nav-dot"></div> AI News</div>
+  <div class="divider"></div>
+  <div class="section-label">More</div>
+  <div class="nav-item"><div class="nav-dot"></div> Watchlist</div>
+  <div class="nav-item"><div class="nav-dot"></div> Leaderboard</div>
+</nav>
+
+<!-- Main content -->
+<div class="main">
+
+  <!-- Portfolio hero -->
+  <div class="hero">
+    <div class="hero-label">Portfolio Value</div>
+    <div class="hero-value">$24,831.50</div>
+    <div class="hero-change up">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14l5-5 5 5z"/></svg>
+      +$312.40 (+1.27%) today
+    </div>
+  </div>
+
+  <!-- Performance chart -->
+  <div class="chart-container">
+    <div class="chart-range">
+      <button class="range-pill">1D</button>
+      <button class="range-pill">1W</button>
+      <button class="range-pill active">1M</button>
+      <button class="range-pill">3M</button>
+      <button class="range-pill">1Y</button>
+      <button class="range-pill">ALL</button>
+    </div>
+    <div class="chart-area">
+      <svg class="chart-svg" viewBox="0 0 800 160" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#00C805" stop-opacity="0.25"/>
+            <stop offset="100%" stop-color="#00C805" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <!-- Area fill -->
+        <path d="M0,130 C50,128 80,120 120,115 C160,110 180,105 220,90 C260,75 280,80 320,70 C360,60 380,65 420,55 C460,45 490,50 530,38 C570,26 600,30 640,20 C680,10 720,15 760,8 L800,5 L800,160 L0,160 Z" fill="url(#greenGrad)"/>
+        <!-- Line -->
+        <path d="M0,130 C50,128 80,120 120,115 C160,110 180,105 220,90 C260,75 280,80 320,70 C360,60 380,65 420,55 C460,45 490,50 530,38 C570,26 600,30 640,20 C680,10 720,15 760,8 L800,5" fill="none" stroke="#00C805" stroke-width="2"/>
+        <!-- Hover dot -->
+        <circle cx="640" cy="20" r="4" fill="#00C805"/>
+        <line x1="640" y1="0" x2="640" y2="160" stroke="#333" stroke-width="1" stroke-dasharray="4,4"/>
+      </svg>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:#333">
+      <span>Feb 14</span><span>Feb 21</span><span>Feb 28</span><span>Mar 7</span><span>Mar 14</span>
+    </div>
+  </div>
+
+  <!-- Stats row -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Buying Power</div>
+      <div class="stat-value">$4,218.20</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Gain</div>
+      <div class="stat-value up">+$3,831.50</div>
+      <div class="stat-sub">+18.2% all time</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Day's P&L</div>
+      <div class="stat-value up">+$312.40</div>
+      <div class="stat-sub">+1.27% today</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Positions</div>
+      <div class="stat-value">6</div>
+    </div>
+  </div>
+
+  <!-- Holdings -->
+  <div class="section-header">Holdings</div>
+  <div class="holdings-list">
+    <div class="holding-row">
+      <div class="ticker-badge">AAPL</div>
+      <div class="holding-info">
+        <div class="holding-ticker">AAPL</div>
+        <div class="holding-name">Apple Inc.</div>
+      </div>
+      <div class="holding-shares">10 shares</div>
+      <div class="holding-value">$2,134.20</div>
+      <div class="holding-pct up">+1.2%</div>
+    </div>
+    <div class="holding-row">
+      <div class="ticker-badge">NVDA</div>
+      <div class="holding-info">
+        <div class="holding-ticker">NVDA</div>
+        <div class="holding-name">NVIDIA Corp.</div>
+      </div>
+      <div class="holding-shares">5 shares</div>
+      <div class="holding-value">$4,456.00</div>
+      <div class="holding-pct up">+3.1%</div>
+    </div>
+    <div class="holding-row">
+      <div class="ticker-badge">TSLA</div>
+      <div class="holding-info">
+        <div class="holding-ticker">TSLA</div>
+        <div class="holding-name">Tesla Inc.</div>
+      </div>
+      <div class="holding-shares">8 shares</div>
+      <div class="holding-value">$1,984.80</div>
+      <div class="holding-pct down">-0.8%</div>
+    </div>
+    <div class="holding-row">
+      <div class="ticker-badge">MSFT</div>
+      <div class="holding-info">
+        <div class="holding-ticker">MSFT</div>
+        <div class="holding-name">Microsoft Corp.</div>
+      </div>
+      <div class="holding-shares">3 shares</div>
+      <div class="holding-value">$1,237.50</div>
+      <div class="holding-pct up">+0.5%</div>
+    </div>
+  </div>
+
+  <!-- Collapsible: Watchlist -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Watchlist</span>
+      <span class="panel-chevron">›</span>
+    </div>
+    <div class="panel-body">
+      <div class="stat-row-item">
+        <span class="stat-row-label">GOOG</span>
+        <span class="stat-row-value" style="color:#00C805">$170.55 +0.9%</span>
+      </div>
+      <div class="stat-row-item">
+        <span class="stat-row-label">META</span>
+        <span class="stat-row-value" style="color:#00C805">$490.10 +2.3%</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

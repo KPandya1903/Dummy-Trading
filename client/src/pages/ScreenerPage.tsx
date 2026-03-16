@@ -100,8 +100,8 @@ const PRESETS = [
 
 const panelSx = {
   p: 3,
-  background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
-  border: '1px solid rgba(201,168,76,0.12)',
+  background: 'linear-gradient(135deg, #111111 0%, #1a1a1a 100%)',
+  border: '1px solid rgba(0,200,5,0.12)',
 };
 
 function fmtNum(n: number | null, digits = 2, prefix = '', suffix = ''): string {
@@ -110,7 +110,7 @@ function fmtNum(n: number | null, digits = 2, prefix = '', suffix = ''): string 
 }
 
 function PnLText({ value }: { value: number }) {
-  const color = value > 0 ? '#00c853' : value < 0 ? '#ff5252' : '#e8eaf0';
+  const color = value > 0 ? '#00C805' : value < 0 ? '#ff5252' : '#e8eaf0';
   return (
     <Typography variant="body2" sx={{ color, fontWeight: 600 }}>
       {value >= 0 ? '+' : ''}{value.toFixed(2)}%
@@ -213,7 +213,7 @@ export default function ScreenerPage() {
                 variant="outlined"
                 clickable
                 onClick={() => applyPreset(p)}
-                sx={{ borderColor: 'rgba(201,168,76,0.3)', '&:hover': { borderColor: 'primary.main' } }}
+                sx={{ borderColor: 'rgba(0,200,5,0.3)', '&:hover': { borderColor: 'primary.main' } }}
               />
             </Tooltip>
           ))}
@@ -346,7 +346,7 @@ export default function ScreenerPage() {
           </Grid>
         </Grid>
 
-        <Divider sx={{ my: 2.5, borderColor: 'rgba(201,168,76,0.08)' }} />
+        <Divider sx={{ my: 2.5, borderColor: 'rgba(0,200,5,0.08)' }} />
 
         <Box display="flex" gap={2} alignItems="center">
           <Button
@@ -373,7 +373,7 @@ export default function ScreenerPage() {
 
       {/* ── Results Table ───────────────────────────────────── */}
       {results !== null && (
-        <TableContainer component={Paper} variant="outlined" sx={{ background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)' }}>
+        <TableContainer component={Paper} variant="outlined" sx={{ background: 'linear-gradient(135deg, #111111 0%, #1a1a1a 100%)' }}>
           <Table size="small">
             <TableHead>
               <TableRow>
@@ -489,7 +489,7 @@ export default function ScreenerPage() {
       {/* ── Empty state ─────────────────────────────────────── */}
       {results === null && !loading && (
         <Paper variant="outlined" sx={{ ...panelSx, textAlign: 'center', py: 6 }}>
-          <FilterListIcon sx={{ fontSize: 48, color: 'rgba(201,168,76,0.3)', mb: 2 }} />
+          <FilterListIcon sx={{ fontSize: 48, color: 'rgba(0,200,5,0.3)', mb: 2 }} />
           <Typography variant="h6" color="text.secondary" gutterBottom>
             Set your filters and run the screen
           </Typography>

@@ -14,16 +14,16 @@ import {
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 
 const DIMENSION_ICONS: Record<string, React.ReactNode> = {
-  earnings: <EarningsIcon sx={{ fontSize: 28, color: '#c9a84c' }} />,
-  product_launches: <LaunchIcon sx={{ fontSize: 28, color: '#c9a84c' }} />,
-  sector_trends: <SectorIcon sx={{ fontSize: 28, color: '#c9a84c' }} />,
-  macro_factors: <MacroIcon sx={{ fontSize: 28, color: '#c9a84c' }} />,
-  competitive_landscape: <CompetitiveIcon sx={{ fontSize: 28, color: '#c9a84c' }} />,
-  supply_chain: <SupplyIcon sx={{ fontSize: 28, color: '#c9a84c' }} />,
-  regulatory: <RegulatoryIcon sx={{ fontSize: 28, color: '#c9a84c' }} />,
-  social_sentiment: <SocialIcon sx={{ fontSize: 28, color: '#c9a84c' }} />,
-  analyst_ratings: <AnalystIcon sx={{ fontSize: 28, color: '#c9a84c' }} />,
-  geopolitical: <GeoIcon sx={{ fontSize: 28, color: '#c9a84c' }} />,
+  earnings: <EarningsIcon sx={{ fontSize: 28, color: '#00C805' }} />,
+  product_launches: <LaunchIcon sx={{ fontSize: 28, color: '#00C805' }} />,
+  sector_trends: <SectorIcon sx={{ fontSize: 28, color: '#00C805' }} />,
+  macro_factors: <MacroIcon sx={{ fontSize: 28, color: '#00C805' }} />,
+  competitive_landscape: <CompetitiveIcon sx={{ fontSize: 28, color: '#00C805' }} />,
+  supply_chain: <SupplyIcon sx={{ fontSize: 28, color: '#00C805' }} />,
+  regulatory: <RegulatoryIcon sx={{ fontSize: 28, color: '#00C805' }} />,
+  social_sentiment: <SocialIcon sx={{ fontSize: 28, color: '#00C805' }} />,
+  analyst_ratings: <AnalystIcon sx={{ fontSize: 28, color: '#00C805' }} />,
+  geopolitical: <GeoIcon sx={{ fontSize: 28, color: '#00C805' }} />,
 };
 
 const SENTIMENT_COLORS: Record<string, 'success' | 'error' | 'warning' | 'default'> = {
@@ -48,18 +48,18 @@ interface NarrativeTileProps {
 }
 
 export default function ResearchNarrativeTile({ narrative, onClick }: NarrativeTileProps) {
-  const icon = DIMENSION_ICONS[narrative.dimension] || <EarningsIcon sx={{ fontSize: 28, color: '#c9a84c' }} />;
-  const sparkColor = (narrative.priceChangePct ?? 0) >= 0 ? '#00c853' : '#ff5252';
+  const icon = DIMENSION_ICONS[narrative.dimension] || <EarningsIcon sx={{ fontSize: 28, color: '#00C805' }} />;
+  const sparkColor = (narrative.priceChangePct ?? 0) >= 0 ? '#00C805' : '#ff5252';
 
   return (
     <Card
       sx={{
-        background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
-        border: '1px solid rgba(201,168,76,0.1)',
+        background: 'linear-gradient(135deg, #111111 0%, #1a1a1a 100%)',
+        border: '1px solid rgba(0,200,5,0.1)',
         height: '100%',
         transition: 'border-color 0.2s, transform 0.2s',
         '&:hover': {
-          borderColor: 'rgba(201,168,76,0.4)',
+          borderColor: 'rgba(0,200,5,0.4)',
           transform: 'translateY(-2px)',
         },
       }}

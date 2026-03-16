@@ -78,26 +78,26 @@ const INDICATORS = ['rsi', 'macd', 'bollinger', 'sma', 'ema', 'stage'];
 
 const WEINSTEIN_COLORS: Record<string, { color: 'success' | 'warning' | 'error' | 'default'; bg: string }> = {
   '1': { color: 'default',  bg: 'rgba(122,139,165,0.12)' },
-  '2': { color: 'success',  bg: 'rgba(0,200,83,0.10)'    },
+  '2': { color: 'success',  bg: 'rgba(0,200,5,0.10)'    },
   '3': { color: 'warning',  bg: 'rgba(255,171,0,0.10)'   },
   '4': { color: 'error',    bg: 'rgba(255,82,82,0.10)'   },
 };
 
 const panelSx = {
   p: 4,
-  background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
-  border: '1px solid rgba(201,168,76,0.1)',
+  background: 'linear-gradient(135deg, #111111 0%, #1a1a1a 100%)',
+  border: '1px solid rgba(0,200,5,0.1)',
 };
 
 const SIGNAL_COLORS: Record<string, string> = {
-  bullish: '#00c853',
+  bullish: '#00C805',
   bearish: '#ff5252',
   neutral: '#7a8ba5',
   overbought: '#ff5252',
-  oversold: '#00c853',
+  oversold: '#00C805',
   upper: '#ff5252',
   middle: '#7a8ba5',
-  lower: '#00c853',
+  lower: '#00C805',
 };
 
 export default function StockAnalysisPage() {
@@ -221,7 +221,7 @@ export default function StockAnalysisPage() {
             <Legend />
 
             {/* Volume bars */}
-            <Bar yAxisId="volume" dataKey="volume" fill="rgba(201,168,76,0.15)" name="Volume" />
+            <Bar yAxisId="volume" dataKey="volume" fill="rgba(0,200,5,0.15)" name="Volume" />
 
             {/* Bollinger Bands */}
             {activeIndicators.includes('bollinger') && (
@@ -243,7 +243,7 @@ export default function StockAnalysisPage() {
 
             {/* Weinstein 30-week MA (SMA 150) */}
             {activeIndicators.includes('stage') && (
-              <Line yAxisId="price" type="monotone" dataKey="sma150" stroke="#c9a84c" dot={false} name="SMA 150 (30w)" strokeWidth={2} strokeDasharray="5 3" />
+              <Line yAxisId="price" type="monotone" dataKey="sma150" stroke="#00C805" dot={false} name="SMA 150 (30w)" strokeWidth={2} strokeDasharray="5 3" />
             )}
 
             {/* EMA lines */}
@@ -273,7 +273,7 @@ export default function StockAnalysisPage() {
               <YAxis domain={[0, 100]} tick={{ fill: CHART_AXIS_COLOR }} fontSize={11} ticks={[0, 30, 50, 70, 100]} />
               <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
               <ReferenceLine y={70} stroke="rgba(255,82,82,0.5)" strokeDasharray="3 3" />
-              <ReferenceLine y={30} stroke="rgba(0,200,83,0.5)" strokeDasharray="3 3" />
+              <ReferenceLine y={30} stroke="rgba(0,200,5,0.5)" strokeDasharray="3 3" />
               <Line type="monotone" dataKey="value" stroke={CHART_COLORS[1]} dot={false} strokeWidth={1.5} name="RSI" />
             </ComposedChart>
           </ResponsiveContainer>
@@ -292,8 +292,8 @@ export default function StockAnalysisPage() {
               <XAxis dataKey="date" tickFormatter={(d: string) => d.slice(5)} interval="preserveStartEnd" minTickGap={80} tick={{ fill: CHART_AXIS_COLOR }} fontSize={11} />
               <YAxis tick={{ fill: CHART_AXIS_COLOR }} fontSize={11} />
               <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
-              <ReferenceLine y={0} stroke="rgba(201,168,76,0.3)" strokeDasharray="3 3" />
-              <Bar dataKey="histogram" name="Histogram" fill="rgba(201,168,76,0.4)" />
+              <ReferenceLine y={0} stroke="rgba(0,200,5,0.3)" strokeDasharray="3 3" />
+              <Bar dataKey="histogram" name="Histogram" fill="rgba(0,200,5,0.4)" />
               <Line type="monotone" dataKey="macd" stroke={CHART_COLORS[2]} dot={false} strokeWidth={1.5} name="MACD" />
               <Line type="monotone" dataKey="signal" stroke={CHART_COLORS[3]} dot={false} strokeWidth={1.5} name="Signal" />
             </ComposedChart>

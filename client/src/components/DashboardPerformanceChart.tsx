@@ -246,7 +246,7 @@ export default function DashboardPerformanceChart({
           {mode === '$' && (
             <ReferenceLine
               y={totalStartingCash}
-              stroke="rgba(201,168,76,0.4)"
+              stroke="rgba(0,200,5,0.4)"
               strokeDasharray="3 3"
               label={{
                 value: 'Start',
@@ -259,7 +259,7 @@ export default function DashboardPerformanceChart({
           {mode === '%' && (
             <ReferenceLine
               y={0}
-              stroke="rgba(201,168,76,0.4)"
+              stroke="rgba(0,200,5,0.4)"
               strokeDasharray="3 3"
             />
           )}

@@ -91,7 +91,7 @@ export default function StockDetailPage() {
       </Box>
 
       <Box display="flex" alignItems="baseline" gap={2} mb={3}>
-        <AnimatedNumber value={quote.price} prefix="$" variant="h4" />
+        <AnimatedNumber value={quote.price} prefix="$" variant="h4" sx={{ fontFamily: '"Playfair Display", serif' }} />
         <Chip
           label={`${isPositive ? '+' : ''}${fmt(quote.change)} (${isPositive ? '+' : ''}${fmt(quote.changePct)}%)`}
           color={isPositive ? 'success' : 'error'}

@@ -31,8 +31,8 @@ interface KellyData {
 const panelSx = {
   p: 3,
   mb: 4,
-  background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
-  border: '1px solid rgba(201,168,76,0.12)',
+  background: 'linear-gradient(135deg, #111111 0%, #1a1a1a 100%)',
+  border: '1px solid rgba(0,200,5,0.12)',
 };
 
 function fmt(n: number | null, digits = 1, suffix = ''): string {
@@ -42,7 +42,7 @@ function fmt(n: number | null, digits = 1, suffix = ''): string {
 
 function kellyColor(pct: number | null): string {
   if (pct === null) return '#7a8ba5';
-  if (pct >= 20) return '#00c853';
+  if (pct >= 20) return '#00C805';
   if (pct >= 8)  return '#ffab00';
   return '#ff5252';
 }
@@ -94,7 +94,7 @@ export default function PositionSizingPanel({ portfolioId }: { portfolioId: numb
         <StatBox label="W/L Ratio"  value={fmt(data.wlRatio, 2)}       tip="Avg win ÷ avg loss. >1 means wins are larger than losses on average." />
       </Stack>
 
-      <Divider sx={{ borderColor: 'rgba(201,168,76,0.08)', mb: 2.5 }} />
+      <Divider sx={{ borderColor: 'rgba(0,200,5,0.08)', mb: 2.5 }} />
 
       {/* Kelly Variants */}
       {data.fullKelly !== null ? (

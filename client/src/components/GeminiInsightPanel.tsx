@@ -81,8 +81,8 @@ export default function GeminiInsightPanel({
       sx={{
         p: 3,
         mt: 2,
-        background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
-        border: '1px solid rgba(201,168,76,0.15)',
+        background: 'linear-gradient(135deg, #111111 0%, #1a1a1a 100%)',
+        border: '1px solid rgba(0,200,5,0.15)',
       }}
     >
       <Box display="flex" alignItems="center" gap={1} mb={1}>

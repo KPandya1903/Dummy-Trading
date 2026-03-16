@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock Detail — AAPL — Dummy Trading</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Inter, -apple-system, sans-serif; background: #0a0a0a; color: #fff; display: flex; height: 100vh; overflow: hidden; }
+
+  /* Sidebar (abbreviated) */
+  .sidebar { width: 220px; min-width: 220px; background: #0a0a0a; border-right: 1px solid #1e1e1e; padding: 0; display: flex; flex-direction: column; }
+  .sidebar-logo { padding: 18px 16px 14px; font-size: 16px; font-weight: 700; color: #00C805; border-bottom: 1px solid #1e1e1e; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 16px; font-size: 13px; color: #8a8a8a; border-left: 3px solid transparent; }
+  .nav-item.active { color: #00C805; border-left-color: #00C805; background: rgba(0,200,5,0.06); font-weight: 600; }
+  .nav-dot { width: 6px; height: 6px; background: #333; border-radius: 50%; }
+  .nav-dot.active { background: #00C805; }
+  .section-label { padding: 12px 16px 4px; font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #444; }
+  .divider { height: 1px; background: #1e1e1e; margin: 6px 0; }
+
+  /* Main */
+  .main { flex: 1; overflow-y: auto; padding: 32px 40px; }
+
+  /* Breadcrumb */
+  .breadcrumb { font-size: 12px; color: #444; margin-bottom: 20px; }
+  .breadcrumb a { color: #555; text-decoration: none; }
+  .breadcrumb a:hover { color: #8a8a8a; }
+  .breadcrumb span { margin: 0 6px; }
+
+  /* Hero */
+  .stock-hero { margin-bottom: 24px; }
+  .stock-row { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+  .stock-left {}
+  .stock-ticker { font-size: 13px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.08em; }
+  .stock-name { font-size: 28px; font-weight: 700; color: #fff; margin: 2px 0; }
+  .stock-price { font-family: 'Playfair Display', serif; font-size: 36px; font-weight: 700; letter-spacing: -1px; }
+  .stock-change { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 500; margin-top: 4px; }
+  .up { color: #00C805; }
+  .down { color: #ff5252; }
+  .stock-right { display: flex; gap: 10px; align-items: center; }
+  .btn {
+    padding: 10px 28px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+  }
+  .btn-buy { background: #00C805; color: #000; }
+  .btn-sell { background: #ff5252; color: #fff; }
+
+  /* Chart */
+  .chart-container { margin-bottom: 28px; }
+  .chart-range { display: flex; gap: 4px; margin-bottom: 12px; }
+  .range-pill { padding: 4px 12px; font-size: 12px; font-weight: 500; color: #555; background: #111; border-radius: 20px; cursor: pointer; border: none; }
+  .range-pill.active { color: #fff; background: #222; font-weight: 600; }
+  .chart-area { height: 200px; background: #0a0a0a; border: 1px solid #1e1e1e; border-radius: 8px; overflow: hidden; position: relative; }
+  .chart-price-label {
+    position: absolute; right: 12px; top: 12px;
+    font-size: 13px; font-weight: 600; color: #00C805;
+    background: rgba(0,200,5,0.1); padding: 2px 8px; border-radius: 4px;
+  }
+
+  /* Stats grid */
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: #1e1e1e; border-radius: 8px; overflow: hidden; margin-bottom: 28px; }
+  .stat-cell { background: #111; padding: 14px 16px; }
+  .stat-label { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .stat-value { font-size: 15px; font-weight: 600; color: #fff; }
+
+  /* Trade form panel (right side drawer feel) */
+  .trade-panel {
+    background: #0f0f0f;
+    border: 1px solid #1e1e1e;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 28px;
+  }
+  .trade-tabs { display: flex; margin-bottom: 16px; background: #1a1a1a; border-radius: 8px; padding: 3px; }
+  .trade-tab { flex: 1; padding: 7px; text-align: center; font-size: 13px; font-weight: 500; color: #555; cursor: pointer; border-radius: 6px; }
+  .trade-tab.active { background: #242424; color: #fff; }
+  .trade-field { margin-bottom: 12px; }
+  .trade-label { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+  .trade-input {
+    width: 100%;
+    background: #1a1a1a;
+    border: 1px solid #242424;
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: #fff;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .trade-input:focus { outline: none; border-color: #00C805; }
+  .trade-total { display: flex; justify-content: space-between; padding: 10px 0; border-top: 1px solid #1e1e1e; margin-top: 4px; }
+  .trade-total-label { font-size: 13px; color: #555; }
+  .trade-total-value { font-size: 16px; font-weight: 600; color: #fff; }
+  .btn-trade { width: 100%; padding: 12px; background: #00C805; color: #000; font-size: 15px; font-weight: 700; border: none; border-radius: 8px; cursor: pointer; margin-top: 12px; }
+
+  /* News */
+  .news-item { padding: 14px 0; border-bottom: 1px solid #141414; }
+  .news-source { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .news-title { font-size: 14px; font-weight: 500; color: #ddd; line-height: 1.4; }
+  .news-time { font-size: 11px; color: #444; margin-top: 4px; }
+
+  .two-col { display: flex; gap: 28px; }
+  .col-main { flex: 1; }
+  .col-side { width: 300px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar (abbreviated) -->
+<nav class="sidebar">
+  <div class="sidebar-logo">Dummy Trading</div>
+  <div class="nav-item"><div class="nav-dot"></div> Dashboard</div>
+  <div class="nav-item active"><div class="nav-dot active"></div> Market</div>
+  <div class="nav-item"><div class="nav-dot"></div> Portfolios</div>
+  <div class="divider"></div>
+  <div class="section-label">Explore</div>
+  <div class="nav-item"><div class="nav-dot"></div> Analysis</div>
+  <div class="nav-item"><div class="nav-dot"></div> Prediction</div>
+  <div class="nav-item"><div class="nav-dot"></div> Screener</div>
+  <div class="nav-item"><div class="nav-dot"></div> AI News</div>
+</nav>
+
+<!-- Main content -->
+<div class="main">
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <a href="#">Market</a><span>›</span><span style="color:#8a8a8a">AAPL</span>
+  </div>
+
+  <!-- Two column layout -->
+  <div class="two-col">
+    <div class="col-main">
+      <!-- Hero -->
+      <div class="stock-hero">
+        <div class="stock-row">
+          <div class="stock-left">
+            <div class="stock-ticker">NASDAQ: AAPL</div>
+            <div class="stock-name">Apple Inc.</div>
+            <div class="stock-price">$213.42</div>
+            <div class="stock-change up">
+              ▲ +$2.54 (+1.20%) today
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart -->
+      <div class="chart-container">
+        <div class="chart-range">
+          <button class="range-pill active">1D</button>
+          <button class="range-pill">1W</button>
+          <button class="range-pill">1M</button>
+          <button class="range-pill">3M</button>
+          <button class="range-pill">1Y</button>
+          <button class="range-pill">ALL</button>
+        </div>
+        <div class="chart-area">
+          <div class="chart-price-label">$213.42</div>
+          <svg width="100%" height="100%" viewBox="0 0 800 200" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#00C805" stop-opacity="0.2"/>
+                <stop offset="100%" stop-color="#00C805" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path d="M0,160 C30,158 60,155 90,150 C120,145 150,148 180,140 C210,132 240,135 270,125 C300,115 330,118 360,105 C390,92 420,95 450,82 C480,69 510,72 540,60 C570,48 600,52 630,40 C660,28 690,32 720,20 C750,10 780,12 800,8 L800,200 L0,200 Z" fill="url(#g2)"/>
+            <path d="M0,160 C30,158 60,155 90,150 C120,145 150,148 180,140 C210,132 240,135 270,125 C300,115 330,118 360,105 C390,92 420,95 450,82 C480,69 510,72 540,60 C570,48 600,52 630,40 C660,28 690,32 720,20 C750,10 780,12 800,8" fill="none" stroke="#00C805" stroke-width="2"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Key stats -->
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#555;margin-bottom:12px">Key Statistics</div>
+      <div class="stats-grid">
+        <div class="stat-cell"><div class="stat-label">Open</div><div class="stat-value">$211.20</div></div>
+        <div class="stat-cell"><div class="stat-label">High</div><div class="stat-value">$214.80</div></div>
+        <div class="stat-cell"><div class="stat-label">Low</div><div class="stat-value">$209.90</div></div>
+        <div class="stat-cell"><div class="stat-label">52W High</div><div class="stat-value">$240.88</div></div>
+        <div class="stat-cell"><div class="stat-label">52W Low</div><div class="stat-value">$164.08</div></div>
+        <div class="stat-cell"><div class="stat-label">Volume</div><div class="stat-value">52.4M</div></div>
+        <div class="stat-cell"><div class="stat-label">Mkt Cap</div><div class="stat-value">$3.28T</div></div>
+        <div class="stat-cell"><div class="stat-label">P/E Ratio</div><div class="stat-value">34.2x</div></div>
+        <div class="stat-cell"><div class="stat-label">Dividend</div><div class="stat-value">$0.25</div></div>
+      </div>
+
+      <!-- News -->
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#555;margin-bottom:12px">Recent News</div>
+      <div class="news-item">
+        <div class="news-source">Bloomberg</div>
+        <div class="news-title">Apple Reports Record iPhone Sales in Q1 2026, Beats Analyst Expectations</div>
+        <div class="news-time">2 hours ago</div>
+      </div>
+      <div class="news-item">
+        <div class="news-source">Reuters</div>
+        <div class="news-title">Apple Vision Pro 2 Development Confirmed, Launch Expected Late 2026</div>
+        <div class="news-time">5 hours ago</div>
+      </div>
+      <div class="news-item">
+        <div class="news-source">CNBC</div>
+        <div class="news-title">Analysts Raise Apple Price Target Following Strong Services Revenue Growth</div>
+        <div class="news-time">8 hours ago</div>
+      </div>
+    </div>
+
+    <!-- Side: Trade panel -->
+    <div class="col-side">
+      <div class="trade-panel">
+        <div class="trade-tabs">
+          <div class="trade-tab active">Buy AAPL</div>
+          <div class="trade-tab">Sell AAPL</div>
+        </div>
+        <div class="trade-field">
+          <div class="trade-label">Quantity</div>
+          <input class="trade-input" type="number" value="10" placeholder="Shares">
+        </div>
+        <div class="trade-field">
+          <div class="trade-label">Order Type</div>
+          <select class="trade-input">
+            <option>Market Order</option>
+            <option>Limit Order</option>
+            <option>Stop Order</option>
+          </select>
+        </div>
+        <div class="trade-total">
+          <span class="trade-total-label">Estimated Total</span>
+          <span class="trade-total-value">$2,134.20</span>
+        </div>
+        <button class="btn-trade">Buy AAPL</button>
+        <div style="font-size:11px;color:#444;text-align:center;margin-top:10px">$4,218.20 buying power available</div>
+      </div>
+
+      <!-- Watchlist button -->
+      <div style="background:#111;border:1px solid #1e1e1e;border-radius:8px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <span style="font-size:13px;color:#8a8a8a">Add to Watchlist</span>
+        <span style="font-size:20px;color:#555;cursor:pointer">+</span>
+      </div>
+
+      <!-- Analysis link -->
+      <div style="background:#111;border:1px solid #1e1e1e;border-radius:8px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;cursor:pointer">
+        <div>
+          <div style="font-size:13px;color:#fff;font-weight:500">Technical Analysis</div>
+          <div style="font-size:11px;color:#555;margin-top:2px">RSI, MACD, Bollinger Bands</div>
+        </div>
+        <span style="color:#555">›</span>
+      </div>
+
+      <div style="background:#111;border:1px solid #1e1e1e;border-radius:8px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+        <div>
+          <div style="font-size:13px;color:#fff;font-weight:500">Price Prediction</div>
+          <div style="font-size:11px;color:#555;margin-top:2px">ML-powered forecast</div>
+        </div>
+        <span style="color:#555">›</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

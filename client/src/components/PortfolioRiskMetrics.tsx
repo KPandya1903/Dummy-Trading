@@ -22,14 +22,14 @@ const panelSx = {
   p: 2.5,
   flex: '1 1 140px',
   minWidth: 140,
-  background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
-  border: '1px solid rgba(201,168,76,0.12)',
+  background: 'linear-gradient(135deg, #111111 0%, #1a1a1a 100%)',
+  border: '1px solid rgba(0,200,5,0.12)',
 };
 
 function valueColor(
   color: 'success' | 'warning' | 'error' | 'neutral',
 ): string {
-  if (color === 'success') return '#00c853';
+  if (color === 'success') return '#00C805';
   if (color === 'warning') return '#ffab00';
   if (color === 'error')   return '#ff5252';
   return '#e8eaf0';

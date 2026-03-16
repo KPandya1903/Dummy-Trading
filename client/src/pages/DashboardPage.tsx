@@ -80,8 +80,8 @@ function fmt(n: number): string {
 
 const panelSx = {
   p: 4,
-  background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
-  border: '1px solid rgba(201,168,76,0.1)',
+  background: 'linear-gradient(135deg, #111111 0%, #1a1a1a 100%)',
+  border: '1px solid rgba(0,200,5,0.1)',
   height: '100%',
 };
 
@@ -124,7 +124,7 @@ export default function DashboardPage() {
             prefix="$"
             variant="h3"
             fontWeight={700}
-            sx={{ mb: 0.5 }}
+            sx={{ mb: 0.5, fontFamily: '"Playfair Display", serif' }}
           />
 
           <Box display="flex" alignItems="baseline" gap={1} mb={2}>
@@ -143,7 +143,7 @@ export default function DashboardPage() {
             </Typography>
           </Box>
 
-          <Divider sx={{ borderColor: 'rgba(201,168,76,0.1)', mb: 2 }} />
+          <Divider sx={{ borderColor: 'rgba(0,200,5,0.1)', mb: 2 }} />
 
           <StatRow
             label="ANNUAL RETURN"

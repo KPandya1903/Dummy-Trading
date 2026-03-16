@@ -38,12 +38,12 @@ interface ValuationData {
 const panelSx = {
   p: 3,
   mb: 4,
-  background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
-  border: '1px solid rgba(201,168,76,0.12)',
+  background: 'linear-gradient(135deg, #111111 0%, #1a1a1a 100%)',
+  border: '1px solid rgba(0,200,5,0.12)',
 };
 
 const VERDICT_COLORS = {
-  cheap:     { chip: 'success' as const, bar: '#00c853' },
+  cheap:     { chip: 'success' as const, bar: '#00C805' },
   fair:      { chip: 'warning' as const, bar: '#ffab00' },
   expensive: { chip: 'error'   as const, bar: '#ff5252' },
   unknown:   { chip: 'default' as const, bar: '#7a8ba5' },

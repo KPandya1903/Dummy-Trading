@@ -33,8 +33,8 @@ const TRENDING_STOCKS = [
 
 const panelSx = {
   p: 3,
-  background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
-  border: '1px solid rgba(201,168,76,0.1)',
+  background: 'linear-gradient(135deg, #111111 0%, #1a1a1a 100%)',
+  border: '1px solid rgba(0,200,5,0.1)',
 };
 
 export default function NewsLandingPage() {
@@ -116,7 +116,7 @@ export default function NewsLandingPage() {
                 <Card sx={{ ...panelSx }}>
                   <CardActionArea onClick={() => setSelectedTicker(s.ticker)}>
                     <CardContent sx={{ textAlign: 'center', py: 2 }}>
-                      <NewspaperIcon sx={{ color: '#c9a84c', mb: 0.5 }} />
+                      <NewspaperIcon sx={{ color: '#00C805', mb: 0.5 }} />
                       <Typography variant="h6" fontWeight={700} color="primary.main">
                         {s.ticker}
                       </Typography>

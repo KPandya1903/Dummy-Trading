@@ -173,7 +173,7 @@ export default function TradeHistoryPage() {
                   sx={
                     isReviewed
                       ? {
-                          bgcolor: 'rgba(201,168,76,0.06)',
+                          bgcolor: 'rgba(0,200,5,0.06)',
                           borderLeft: 3,
                           borderColor: 'primary.main',
                         }

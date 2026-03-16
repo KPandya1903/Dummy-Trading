@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Market — Dummy Trading</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Inter, -apple-system, sans-serif; background: #0a0a0a; color: #fff; display: flex; height: 100vh; overflow: hidden; }
+
+  .sidebar { width: 220px; min-width: 220px; background: #0a0a0a; border-right: 1px solid #1e1e1e; padding: 0; display: flex; flex-direction: column; }
+  .sidebar-logo { padding: 18px 16px 14px; font-size: 16px; font-weight: 700; color: #00C805; border-bottom: 1px solid #1e1e1e; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 16px; font-size: 13px; color: #8a8a8a; border-left: 3px solid transparent; }
+  .nav-item.active { color: #00C805; border-left-color: #00C805; background: rgba(0,200,5,0.06); font-weight: 600; }
+  .nav-dot { width: 6px; height: 6px; background: #333; border-radius: 50%; }
+  .nav-dot.active { background: #00C805; }
+  .section-label { padding: 12px 16px 4px; font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #444; }
+  .divider { height: 1px; background: #1e1e1e; margin: 6px 0; }
+
+  .main { flex: 1; overflow-y: auto; padding: 28px 36px; }
+  .page-title { font-size: 22px; font-weight: 700; margin-bottom: 20px; }
+
+  .up { color: #00C805; }
+  .down { color: #ff5252; }
+
+  /* ── Index Charts Grid ── */
+  .indices-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .index-card {
+    background: #111;
+    border: 1px solid #1e1e1e;
+    border-radius: 10px;
+    padding: 16px 18px 12px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .index-card:hover { border-color: #333; }
+  .index-card.active-card { border-color: #00C805; }
+  .index-card-header { margin-bottom: 10px; }
+  .index-label { font-size: 11px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.08em; }
+  .index-value { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; color: #fff; margin: 4px 0 2px; letter-spacing: -0.5px; }
+  .index-change { font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 4px; }
+  .index-change-abs { color: #555; font-size: 11px; margin-left: 4px; }
+  canvas.index-chart { width: 100%; height: 80px; display: block; }
+
+  /* ── Range pills ── */
+  .range-row { display: flex; gap: 4px; margin-bottom: 16px; }
+  .range-pill { padding: 4px 12px; font-size: 11px; font-weight: 600; color: #555; background: transparent; border-radius: 20px; border: 1px solid transparent; cursor: pointer; transition: all 0.15s; }
+  .range-pill:hover { color: #aaa; }
+  .range-pill.active { color: #fff; background: #1e1e1e; border-color: #2a2a2a; }
+
+  /* ── Main expanded chart ── */
+  .main-chart-card {
+    background: #111;
+    border: 1px solid #1e1e1e;
+    border-radius: 10px;
+    padding: 18px 20px 14px;
+    margin-bottom: 24px;
+    position: relative;
+  }
+  .main-chart-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+  .main-chart-title { font-size: 13px; font-weight: 600; color: #8a8a8a; }
+  .main-chart-value { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 700; color: #fff; margin-top: 2px; }
+  .main-chart-change { font-size: 13px; font-weight: 500; margin-top: 4px; }
+  .chart-tooltip {
+    position: absolute;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: #fff;
+    pointer-events: none;
+    display: none;
+    z-index: 10;
+    white-space: nowrap;
+  }
+  canvas.main-canvas { width: 100%; height: 200px; display: block; cursor: crosshair; }
+
+  /* ── Top movers ── */
+  .section-header { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #555; margin-bottom: 12px; }
+  .movers-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 24px; scrollbar-width: none; }
+  .mover-chip { flex-shrink: 0; background: #111; border: 1px solid #1e1e1e; border-radius: 8px; padding: 10px 14px; min-width: 110px; cursor: pointer; transition: border-color 0.15s; }
+  .mover-chip:hover { border-color: #333; }
+  .mover-ticker { font-size: 13px; font-weight: 700; color: #fff; }
+  .mover-price { font-size: 12px; color: #555; margin-top: 2px; }
+  .mover-pct { font-size: 13px; font-weight: 600; margin-top: 4px; }
+  .mover-chip.up .mover-pct { color: #00C805; }
+  .mover-chip.down .mover-pct { color: #ff5252; }
+
+  /* ── Search ── */
+  .search-bar { position: relative; margin-bottom: 14px; }
+  .search-input { width: 100%; background: #111; border: 1px solid #1e1e1e; border-radius: 8px; padding: 9px 12px 9px 34px; color: #fff; font-size: 13px; font-family: inherit; }
+  .search-input::placeholder { color: #444; }
+  .search-input:focus { outline: none; border-color: #2a2a2a; }
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #444; }
+
+  /* ── Stock table ── */
+  .table-header { display: grid; grid-template-columns: 200px 1fr 100px 110px 100px 90px; padding: 6px 0; border-bottom: 1px solid #1e1e1e; }
+  .table-header span { font-size: 10px; font-weight: 600; color: #444; text-transform: uppercase; letter-spacing: 0.06em; }
+  .table-header span:not(:first-child) { text-align: right; }
+  .stock-row { display: grid; grid-template-columns: 200px 1fr 100px 110px 100px 90px; padding: 11px 0; border-bottom: 1px solid #0f0f0f; cursor: pointer; align-items: center; }
+  .stock-row:hover { background: rgba(255,255,255,0.02); border-radius: 6px; padding-left: 6px; padding-right: 6px; margin: 0 -6px; }
+  .stock-t { font-size: 14px; font-weight: 600; }
+  .stock-n { font-size: 11px; color: #444; margin-top: 1px; }
+  .right { text-align: right; }
+  .stock-price { font-size: 14px; font-weight: 500; }
+  .pct-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+  .pct-badge.up { color: #00C805; background: rgba(0,200,5,0.1); }
+  .pct-badge.down { color: #ff5252; background: rgba(255,82,82,0.1); }
+  .mini-spark { display: inline-block; vertical-align: middle; }
+
+  /* ── Heatmap ── */
+  .heatmap { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; }
+  .heatmap-cell { height: 68px; border-radius: 5px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: opacity 0.15s; }
+  .heatmap-cell:hover { opacity: 0.8; }
+  .h-ticker { font-size: 12px; font-weight: 700; }
+  .h-pct { font-size: 10px; margin-top: 2px; opacity: 0.9; }
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-logo">Dummy Trading</div>
+  <div class="nav-item"><div class="nav-dot"></div> Dashboard</div>
+  <div class="nav-item active"><div class="nav-dot active"></div> Market</div>
+  <div class="nav-item"><div class="nav-dot"></div> Portfolios</div>
+  <div class="divider"></div>
+  <div class="section-label">Explore</div>
+  <div class="nav-item"><div class="nav-dot"></div> Analysis</div>
+  <div class="nav-item"><div class="nav-dot"></div> Prediction</div>
+  <div class="nav-item"><div class="nav-dot"></div> Screener</div>
+  <div class="nav-item"><div class="nav-dot"></div> AI News</div>
+  <div class="nav-item"><div class="nav-dot"></div> Deep Research</div>
+  <div class="divider"></div>
+  <div class="section-label">More</div>
+  <div class="nav-item"><div class="nav-dot"></div> Watchlist</div>
+  <div class="nav-item"><div class="nav-dot"></div> Leaderboard</div>
+</nav>
+
+<div class="main">
+  <div class="page-title">Market Overview</div>
+
+  <!-- 3 index cards with mini charts -->
+  <div class="indices-grid">
+    <div class="index-card active-card" onclick="selectIndex('sp500',this)">
+      <div class="index-card-header">
+        <div class="index-label">S&P 500</div>
+        <div class="index-value">5,842.31</div>
+        <div class="index-change up">▲ +0.73% <span class="index-change-abs">+42.18 pts</span></div>
+      </div>
+      <canvas class="index-chart" id="chart-sp500"></canvas>
+    </div>
+    <div class="index-card" onclick="selectIndex('nasdaq',this)">
+      <div class="index-card-header">
+        <div class="index-label">NASDAQ</div>
+        <div class="index-value">18,234.10</div>
+        <div class="index-change up">▲ +0.71% <span class="index-change-abs">+128.44 pts</span></div>
+      </div>
+      <canvas class="index-chart" id="chart-nasdaq"></canvas>
+    </div>
+    <div class="index-card" onclick="selectIndex('dow',this)">
+      <div class="index-card-header">
+        <div class="index-label">DOW JONES</div>
+        <div class="index-value">42,801.55</div>
+        <div class="index-change down">▼ -0.20% <span class="index-change-abs">-84.20 pts</span></div>
+      </div>
+      <canvas class="index-chart" id="chart-dow"></canvas>
+    </div>
+  </div>
+
+  <!-- Main expanded chart -->
+  <div class="main-chart-card">
+    <div class="main-chart-header">
+      <div>
+        <div class="main-chart-title" id="main-title">S&P 500 — 1 Month</div>
+        <div class="main-chart-value" id="main-value">5,842.31</div>
+        <div class="main-chart-change up" id="main-change">▲ +42.18 (+0.73%) today</div>
+      </div>
+      <div class="range-row">
+        <button class="range-pill" onclick="setRange('1D',this)">1D</button>
+        <button class="range-pill" onclick="setRange('1W',this)">1W</button>
+        <button class="range-pill active" onclick="setRange('1M',this)">1M</button>
+        <button class="range-pill" onclick="setRange('3M',this)">3M</button>
+        <button class="range-pill" onclick="setRange('1Y',this)">1Y</button>
+      </div>
+    </div>
+    <div id="chart-tooltip" class="chart-tooltip"></div>
+    <canvas class="main-canvas" id="main-chart"></canvas>
+    <!-- X-axis labels -->
+    <div style="display:flex;justify-content:space-between;margin-top:6px;padding:0 4px" id="x-labels"></div>
+  </div>
+
+  <!-- Top movers -->
+  <div class="section-header">Top Movers Today</div>
+  <div class="movers-row">
+    <div class="mover-chip up"><div class="mover-ticker">NVDA</div><div class="mover-price">$891.20</div><div class="mover-pct">▲ +3.1%</div></div>
+    <div class="mover-chip up"><div class="mover-ticker">META</div><div class="mover-price">$490.10</div><div class="mover-pct">▲ +2.3%</div></div>
+    <div class="mover-chip up"><div class="mover-ticker">AMD</div><div class="mover-price">$168.40</div><div class="mover-pct">▲ +1.6%</div></div>
+    <div class="mover-chip up"><div class="mover-ticker">AAPL</div><div class="mover-price">$213.42</div><div class="mover-pct">▲ +1.2%</div></div>
+    <div class="mover-chip up"><div class="mover-ticker">V</div><div class="mover-price">$278.90</div><div class="mover-pct">▲ +1.0%</div></div>
+    <div class="mover-chip down"><div class="mover-ticker">NFLX</div><div class="mover-price">$612.30</div><div class="mover-pct">▼ -2.1%</div></div>
+    <div class="mover-chip down"><div class="mover-ticker">PFE</div><div class="mover-price">$27.80</div><div class="mover-pct">▼ -1.9%</div></div>
+    <div class="mover-chip down"><div class="mover-ticker">AMZN</div><div class="mover-price">$178.30</div><div class="mover-pct">▼ -1.4%</div></div>
+    <div class="mover-chip down"><div class="mover-ticker">BA</div><div class="mover-price">$183.40</div><div class="mover-pct">▼ -1.1%</div></div>
+    <div class="mover-chip down"><div class="mover-ticker">TSLA</div><div class="mover-price">$248.10</div><div class="mover-pct">▼ -0.8%</div></div>
+  </div>
+
+  <!-- Stock list -->
+  <div class="search-bar">
+    <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input class="search-input" type="text" placeholder="Search stocks — ticker, company name">
+  </div>
+
+  <div class="table-header">
+    <span>Name</span><span></span><span>Price</span><span>Change</span><span>Volume</span><span>7D Chart</span>
+  </div>
+  <div class="stock-row"><div><div class="stock-t">AAPL</div><div class="stock-n">Apple Inc.</div></div><div></div><div class="right stock-price">$213.42</div><div class="right"><span class="pct-badge up">+1.20%</span></div><div class="right" style="font-size:12px;color:#555">52.4M</div><div class="right"><svg class="mini-spark" width="60" height="24" viewBox="0 0 60 24"><path d="M0,20 C8,18 14,15 20,12 C26,9 30,11 36,8 C42,5 50,6 60,2" fill="none" stroke="#00C805" stroke-width="1.5"/></svg></div></div>
+  <div class="stock-row"><div><div class="stock-t">MSFT</div><div class="stock-n">Microsoft Corp.</div></div><div></div><div class="right stock-price">$412.50</div><div class="right"><span class="pct-badge up">+0.50%</span></div><div class="right" style="font-size:12px;color:#555">28.1M</div><div class="right"><svg class="mini-spark" width="60" height="24" viewBox="0 0 60 24"><path d="M0,16 C10,14 18,12 24,10 C30,8 36,9 42,6 C48,4 54,5 60,3" fill="none" stroke="#00C805" stroke-width="1.5"/></svg></div></div>
+  <div class="stock-row"><div><div class="stock-t">NVDA</div><div class="stock-n">NVIDIA Corp.</div></div><div></div><div class="right stock-price">$891.20</div><div class="right"><span class="pct-badge up">+3.10%</span></div><div class="right" style="font-size:12px;color:#555">41.8M</div><div class="right"><svg class="mini-spark" width="60" height="24" viewBox="0 0 60 24"><path d="M0,22 C8,20 14,18 20,15 C26,11 30,12 36,8 C42,5 50,4 60,2" fill="none" stroke="#00C805" stroke-width="1.5"/></svg></div></div>
+  <div class="stock-row"><div><div class="stock-t">TSLA</div><div class="stock-n">Tesla Inc.</div></div><div></div><div class="right stock-price">$248.10</div><div class="right"><span class="pct-badge down">-0.80%</span></div><div class="right" style="font-size:12px;color:#555">89.2M</div><div class="right"><svg class="mini-spark" width="60" height="24" viewBox="0 0 60 24"><path d="M0,4 C8,6 14,8 20,10 C26,12 32,10 38,14 C44,18 52,16 60,20" fill="none" stroke="#ff5252" stroke-width="1.5"/></svg></div></div>
+  <div class="stock-row"><div><div class="stock-t">AMZN</div><div class="stock-n">Amazon.com Inc.</div></div><div></div><div class="right stock-price">$178.30</div><div class="right"><span class="pct-badge down">-1.40%</span></div><div class="right" style="font-size:12px;color:#555">35.6M</div><div class="right"><svg class="mini-spark" width="60" height="24" viewBox="0 0 60 24"><path d="M0,6 C8,8 16,10 22,12 C28,14 34,11 40,15 C46,19 52,17 60,22" fill="none" stroke="#ff5252" stroke-width="1.5"/></svg></div></div>
+  <div class="stock-row"><div><div class="stock-t">GOOG</div><div class="stock-n">Alphabet Inc.</div></div><div></div><div class="right stock-price">$170.55</div><div class="right"><span class="pct-badge up">+0.90%</span></div><div class="right" style="font-size:12px;color:#555">22.3M</div><div class="right"><svg class="mini-spark" width="60" height="24" viewBox="0 0 60 24"><path d="M0,18 C10,15 18,13 26,10 C32,8 38,9 44,7 C50,5 56,4 60,3" fill="none" stroke="#00C805" stroke-width="1.5"/></svg></div></div>
+  <div class="stock-row"><div><div class="stock-t">META</div><div class="stock-n">Meta Platforms Inc.</div></div><div></div><div class="right stock-price">$490.10</div><div class="right"><span class="pct-badge up">+2.30%</span></div><div class="right" style="font-size:12px;color:#555">18.9M</div><div class="right"><svg class="mini-spark" width="60" height="24" viewBox="0 0 60 24"><path d="M0,20 C8,17 16,14 24,10 C32,7 38,8 44,5 C50,3 56,2 60,1" fill="none" stroke="#00C805" stroke-width="1.5"/></svg></div></div>
+
+  <!-- Heatmap -->
+  <div style="margin-top:28px;margin-bottom:32px">
+    <div class="section-header">Market Heatmap — S&P 500</div>
+    <div class="heatmap">
+      <div class="heatmap-cell" style="background:rgba(0,200,5,0.6);color:#000"><div class="h-ticker">NVDA</div><div class="h-pct">+3.1%</div></div>
+      <div class="heatmap-cell" style="background:rgba(0,200,5,0.38);color:#000"><div class="h-ticker">META</div><div class="h-pct">+2.3%</div></div>
+      <div class="heatmap-cell" style="background:rgba(0,200,5,0.25);color:#000"><div class="h-ticker">AMD</div><div class="h-pct">+1.6%</div></div>
+      <div class="heatmap-cell" style="background:rgba(0,200,5,0.2);color:#000"><div class="h-ticker">AAPL</div><div class="h-pct">+1.2%</div></div>
+      <div class="heatmap-cell" style="background:rgba(0,200,5,0.14);color:#00C805"><div class="h-ticker">GOOG</div><div class="h-pct">+0.9%</div></div>
+      <div class="heatmap-cell" style="background:rgba(0,200,5,0.08);color:#00C805"><div class="h-ticker">MSFT</div><div class="h-pct">+0.5%</div></div>
+      <div class="heatmap-cell" style="background:rgba(0,200,5,0.06);color:#00C805"><div class="h-ticker">JNJ</div><div class="h-pct">+0.4%</div></div>
+      <div class="heatmap-cell" style="background:rgba(0,200,5,0.05);color:#00C805"><div class="h-ticker">INTC</div><div class="h-pct">+0.3%</div></div>
+      <div class="heatmap-cell" style="background:rgba(0,200,5,0.16);color:#000"><div class="h-ticker">V</div><div class="h-pct">+1.8%</div></div>
+      <div class="heatmap-cell" style="background:rgba(0,200,5,0.1);color:#00C805"><div class="h-ticker">JPM</div><div class="h-pct">+0.8%</div></div>
+      <div class="heatmap-cell" style="background:rgba(255,82,82,0.12);color:#ff5252"><div class="h-ticker">DIS</div><div class="h-pct">-0.5%</div></div>
+      <div class="heatmap-cell" style="background:rgba(255,82,82,0.14);color:#ff5252"><div class="h-ticker">TSLA</div><div class="h-pct">-0.8%</div></div>
+      <div class="heatmap-cell" style="background:rgba(255,82,82,0.2);color:#ff5252"><div class="h-ticker">BA</div><div class="h-pct">-1.1%</div></div>
+      <div class="heatmap-cell" style="background:rgba(255,82,82,0.26);color:#ff5252"><div class="h-ticker">AMZN</div><div class="h-pct">-1.4%</div></div>
+      <div class="heatmap-cell" style="background:rgba(255,82,82,0.38);color:#ff5252"><div class="h-ticker">NFLX</div><div class="h-pct">-2.1%</div></div>
+      <div class="heatmap-cell" style="background:rgba(255,82,82,0.5);color:#ff5252"><div class="h-ticker">PFE</div><div class="h-pct">-2.8%</div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+const indexData = {
+  sp500: {
+    label: 'S&P 500',
+    value: '5,842.31',
+    change: '▲ +42.18 (+0.73%) today',
+    isUp: true,
+    data1M: [5530,5545,5520,5560,5580,5575,5610,5600,5595,5630,5645,5640,5660,5680,5670,5695,5720,5715,5730,5750,5745,5760,5780,5775,5790,5810,5805,5820,5835,5842],
+    data1D: [5800,5808,5812,5805,5818,5822,5819,5825,5830,5828,5835,5833,5838,5842,5840,5842,5841,5843,5842],
+    data1W: [5780,5788,5792,5785,5798,5802,5799,5805,5810,5808,5815,5813,5818,5822,5820,5825,5830,5828,5835,5840,5842],
+    data3M: [5350,5380,5360,5400,5420,5440,5430,5460,5480,5500,5490,5510,5530,5520,5545,5560,5580,5575,5610,5630,5645,5660,5680,5695,5720,5750,5760,5780,5810,5820,5842],
+    data1Y: [4800,4850,4820,4900,4880,4950,4930,5000,5050,5020,5100,5080,5150,5130,5200,5180,5250,5230,5300,5280,5350,5380,5420,5460,5500,5530,5560,5600,5640,5680,5720,5750,5790,5820,5842],
+    labels1M: ['Feb 14','Feb 21','Feb 28','Mar 7','Mar 14'],
+    labels1D: ['9:30','10:00','10:30','11:00','11:30','12:00','12:30','1:00','1:30','2:00','2:30','3:00','3:30','4:00'],
+    labels1W: ['Mon','Tue','Wed','Thu','Fri','Mon','Tue','Wed','Thu','Fri','Mon','Tue','Wed','Thu','Fri','Mon','Tue','Wed','Thu','Fri','Fri'],
+    labels3M: ['Dec','Jan','Feb','Mar'],
+    labels1Y: ['Mar 25','Jun 25','Sep 25','Dec 25','Mar 26'],
+  },
+  nasdaq: {
+    label: 'NASDAQ',
+    value: '18,234.10',
+    change: '▲ +128.44 (+0.71%) today',
+    isUp: true,
+    data1M: [17200,17280,17220,17320,17380,17360,17440,17420,17400,17480,17520,17500,17560,17600,17580,17640,17700,17680,17720,17780,17760,17800,17850,17820,17860,17920,17900,17960,18100,18234],
+    data1D: [18100,18115,18122,18108,18130,18142,18135,18150,18162,18155,18170,18165,18180,18195,18190,18205,18215,18225,18234],
+    data3M: [16800,16900,16850,17000,17100,17200,17150,17280,17350,17420,17380,17460,17520,17500,17580,17640,17700,17780,17820,17900,17960,18100,18234],
+    labels1M: ['Feb 14','Feb 21','Feb 28','Mar 7','Mar 14'],
+    labels3M: ['Dec','Jan','Feb','Mar'],
+  },
+  dow: {
+    label: 'DOW JONES',
+    value: '42,801.55',
+    change: '▼ -84.20 (-0.20%) today',
+    isUp: false,
+    data1M: [42100,42200,42150,42280,42320,42300,42380,42350,42300,42420,42460,42440,42500,42540,42520,42580,42620,42600,42640,42680,42660,42700,42740,42720,42760,42800,42780,42820,42850,42801],
+    data1D: [42885,42870,42855,42878,42840,42820,42835,42815,42800,42810,42795,42808,42790,42780,42800,42810,42795,42802,42801],
+    data3M: [41200,41400,41300,41600,41700,41800,41750,41900,42000,42100,42050,42150,42200,42180,42280,42350,42420,42500,42540,42620,42680,42740,42800,42801],
+    labels1M: ['Feb 14','Feb 21','Feb 28','Mar 7','Mar 14'],
+    labels3M: ['Dec','Jan','Feb','Mar'],
+  }
+};
+
+let currentIndex = 'sp500';
+let currentRange = '1M';
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+function getIndexDataForRange(idx, range) {
+  const d = indexData[idx];
+  const map = { '1D': d.data1D || d.data1M, '1W': d.data1W || d.data1M, '1M': d.data1M, '3M': d.data3M || d.data1M, '1Y': d.data1Y || d.data1M };
+  return map[range] || d.data1M;
+}
+function getLabelsForRange(idx, range) {
+  const d = indexData[idx];
+  const map = { '1D': d.labels1D || d.labels1M, '1W': d.labels1W || d.labels1M, '1M': d.labels1M, '3M': d.labels3M || d.labels1M, '1Y': d.labels1Y || d.labels1M };
+  return map[range] || d.labels1M;
+}
+
+// ── Draw mini sparkline ───────────────────────────────────────────────────────
+function drawMiniChart(canvasId, data, isUp) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = rect.height;
+  const color = isUp ? '#00C805' : '#ff5252';
+  const min = Math.min(...data), max = Math.max(...data);
+  const range = max - min || 1;
+  const pad = 4;
+  const pts = data.map((v, i) => ({
+    x: pad + (i / (data.length - 1)) * (W - pad * 2),
+    y: H - pad - ((v - min) / range) * (H - pad * 2)
+  }));
+  // Gradient fill
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, isUp ? 'rgba(0,200,5,0.18)' : 'rgba(255,82,82,0.18)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) {
+    const cp = { x: (pts[i-1].x + pts[i].x)/2, y: (pts[i-1].y + pts[i].y)/2 };
+    ctx.quadraticCurveTo(pts[i-1].x, pts[i-1].y, cp.x, cp.y);
+  }
+  ctx.lineTo(pts[pts.length-1].x, H);
+  ctx.lineTo(pts[0].x, H);
+  ctx.fillStyle = grad;
+  ctx.fill();
+  // Line
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) {
+    const cp = { x: (pts[i-1].x + pts[i].x)/2, y: (pts[i-1].y + pts[i].y)/2 };
+    ctx.quadraticCurveTo(pts[i-1].x, pts[i-1].y, cp.x, cp.y);
+  }
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+// ── Draw main chart ───────────────────────────────────────────────────────────
+function drawMainChart(idx, range) {
+  const canvas = document.getElementById('main-chart');
+  const tooltip = document.getElementById('chart-tooltip');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = rect.height;
+  const data = getIndexDataForRange(idx, range);
+  const labels = getLabelsForRange(idx, range);
+  const d = indexData[idx];
+  const isUp = data[data.length-1] >= data[0];
+  const color = isUp ? '#00C805' : '#ff5252';
+  const padL = 52, padR = 12, padT = 12, padB = 28;
+  const cW = W - padL - padR, cH = H - padT - padB;
+
+  const min = Math.min(...data) * 0.9995;
+  const max = Math.max(...data) * 1.0005;
+  const range2 = max - min;
+
+  const xOf = (i) => padL + (i / (data.length - 1)) * cW;
+  const yOf = (v) => padT + (1 - (v - min) / range2) * cH;
+
+  const pts = data.map((v, i) => ({ x: xOf(i), y: yOf(v), v }));
+
+  // Grid lines + Y-axis labels
+  const yTicks = 5;
+  ctx.font = '10px Inter, sans-serif';
+  ctx.fillStyle = '#333';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= yTicks; i++) {
+    const val = min + (range2 / yTicks) * i;
+    const y = padT + (1 - i / yTicks) * cH;
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(W - padR, y);
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // Format value
+    let label = val >= 10000 ? (val/1000).toFixed(1)+'k' : Math.round(val).toLocaleString();
+    ctx.fillStyle = '#444';
+    ctx.fillText(label, padL - 4, y + 3.5);
+  }
+
+  // Area gradient
+  const grad = ctx.createLinearGradient(0, padT, 0, padT + cH);
+  grad.addColorStop(0, isUp ? 'rgba(0,200,5,0.22)' : 'rgba(255,82,82,0.22)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i-1], cur = pts[i];
+    const cpx = (prev.x + cur.x) / 2;
+    ctx.bezierCurveTo(cpx, prev.y, cpx, cur.y, cur.x, cur.y);
+  }
+  ctx.lineTo(pts[pts.length-1].x, padT + cH);
+  ctx.lineTo(pts[0].x, padT + cH);
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i-1], cur = pts[i];
+    const cpx = (prev.x + cur.x) / 2;
+    ctx.bezierCurveTo(cpx, prev.y, cpx, cur.y, cur.x, cur.y);
+  }
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // End dot
+  const last = pts[pts.length-1];
+  ctx.beginPath();
+  ctx.arc(last.x, last.y, 4, 0, Math.PI*2);
+  ctx.fillStyle = color;
+  ctx.fill();
+
+  // X-axis labels
+  const labelsEl = document.getElementById('x-labels');
+  labelsEl.innerHTML = '';
+  const xLabelCount = Math.min(labels.length, 5);
+  const step = Math.floor(labels.length / (xLabelCount - 1));
+  const shownLabels = [];
+  for (let i = 0; i < xLabelCount - 1; i++) shownLabels.push(labels[i * step] || '');
+  shownLabels.push(labels[labels.length-1]);
+  labelsEl.innerHTML = shownLabels.map(l => `<span style="font-size:10px;color:#444">${l}</span>`).join('');
+
+  // ── Hover interaction ──
+  canvas.onmousemove = (e) => {
+    const bRect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - bRect.left);
+    if (mx < padL || mx > W - padR) { tooltip.style.display = 'none'; return; }
+    const idx2 = Math.round(((mx - padL) / cW) * (data.length - 1));
+    const pt = pts[Math.min(Math.max(idx2,0), pts.length-1)];
+
+    // Redraw
+    canvas.width = canvas.width; // clear
+    ctx.scale(dpr, dpr);
+    drawMainChartInner(ctx, pts, data, min, range2, padL, padR, padT, padB, W, H, cW, cH, color, grad, isUp);
+
+    // Crosshair
+    ctx.beginPath();
+    ctx.moveTo(pt.x, padT);
+    ctx.lineTo(pt.x, padT + cH);
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4,4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, 4, 0, Math.PI*2);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, 7, 0, Math.PI*2);
+    ctx.strokeStyle = isUp ? 'rgba(0,200,5,0.3)' : 'rgba(255,82,82,0.3)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    tooltip.style.display = 'block';
+    tooltip.innerHTML = `<b>${pt.v.toLocaleString()}</b> · ${labels[idx2] || ''}`;
+    let tx = e.clientX - canvas.getBoundingClientRect().left + 12;
+    let ty = e.clientY - canvas.getBoundingClientRect().top - 32;
+    tooltip.style.left = tx + 'px';
+    tooltip.style.top = ty + 'px';
+  };
+  canvas.onmouseleave = () => { tooltip.style.display = 'none'; };
+}
+
+function drawMainChartInner(ctx, pts, data, min, range2, padL, padR, padT, padB, W, H, cW, cH, color, grad, isUp) {
+  ctx.font = '10px Inter, sans-serif';
+  const yTicks = 5;
+  for (let i = 0; i <= yTicks; i++) {
+    const val = min + (range2 / yTicks) * i;
+    const y = padT + (1 - i / yTicks) * cH;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y);
+    ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 1; ctx.stroke();
+    let label = val >= 10000 ? (val/1000).toFixed(1)+'k' : Math.round(val).toLocaleString();
+    ctx.fillStyle = '#444'; ctx.textAlign = 'right';
+    ctx.fillText(label, padL - 4, y + 3.5);
+  }
+  ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i-1], cur = pts[i], cpx = (prev.x+cur.x)/2;
+    ctx.bezierCurveTo(cpx, prev.y, cpx, cur.y, cur.x, cur.y);
+  }
+  ctx.lineTo(pts[pts.length-1].x, padT+cH); ctx.lineTo(pts[0].x, padT+cH);
+  ctx.fillStyle = grad; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i-1], cur = pts[i], cpx = (prev.x+cur.x)/2;
+    ctx.bezierCurveTo(cpx, prev.y, cpx, cur.y, cur.x, cur.y);
+  }
+  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
+  const last = pts[pts.length-1];
+  ctx.beginPath(); ctx.arc(last.x, last.y, 4, 0, Math.PI*2);
+  ctx.fillStyle = color; ctx.fill();
+}
+
+// ── Index card click ──────────────────────────────────────────────────────────
+function selectIndex(idx, el) {
+  currentIndex = idx;
+  document.querySelectorAll('.index-card').forEach(c => c.classList.remove('active-card'));
+  el.classList.add('active-card');
+  const d = indexData[idx];
+  document.getElementById('main-title').textContent = d.label + ' — ' + currentRange;
+  document.getElementById('main-value').textContent = d.value;
+  const changeEl = document.getElementById('main-change');
+  changeEl.textContent = d.change;
+  changeEl.className = 'main-chart-change ' + (d.isUp ? 'up' : 'down');
+  setTimeout(() => drawMainChart(idx, currentRange), 10);
+}
+
+function setRange(range, el) {
+  currentRange = range;
+  document.querySelectorAll('.range-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('main-title').textContent = indexData[currentIndex].label + ' — ' + range;
+  setTimeout(() => drawMainChart(currentIndex, range), 10);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  // Draw mini charts
+  drawMiniChart('chart-sp500', indexData.sp500.data1M, true);
+  drawMiniChart('chart-nasdaq', indexData.nasdaq.data1M, true);
+  drawMiniChart('chart-dow', indexData.dow.data1M, false);
+  // Draw main chart
+  setTimeout(() => drawMainChart('sp500', '1M'), 50);
+});
+
+window.addEventListener('resize', () => {
+  drawMiniChart('chart-sp500', indexData.sp500.data1M, true);
+  drawMiniChart('chart-nasdaq', indexData.nasdaq.data1M, true);
+  drawMiniChart('chart-dow', indexData.dow.data1M, false);
+  drawMainChart(currentIndex, currentRange);
+});
+</script>
+</body>
+</html>

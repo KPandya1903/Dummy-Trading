@@ -45,14 +45,14 @@ interface BehaviorData {
 const panelSx = {
   p: 3,
   mb: 4,
-  background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
-  border: '1px solid rgba(201,168,76,0.12)',
+  background: 'linear-gradient(135deg, #111111 0%, #1a1a1a 100%)',
+  border: '1px solid rgba(0,200,5,0.12)',
 };
 
 function scoreColor(score: number | null, invert = false): string {
   if (score === null) return '#7a8ba5';
   const adjusted = invert ? 100 - score : score;
-  if (adjusted >= 70) return '#00c853';
+  if (adjusted >= 70) return '#00C805';
   if (adjusted >= 40) return '#ffab00';
   return '#ff5252';
 }
@@ -177,7 +177,7 @@ export default function BehavioralBiasPanel({ portfolioId }: { portfolioId: numb
       {/* Bias Signals */}
       {hasBiases && (
         <>
-          <Divider sx={{ borderColor: 'rgba(201,168,76,0.08)', my: 2.5 }} />
+          <Divider sx={{ borderColor: 'rgba(0,200,5,0.08)', my: 2.5 }} />
           <Box display="flex" alignItems="center" gap={0.75} mb={1.5}>
             <WarningAmberIcon sx={{ fontSize: 16, color: '#ffab00' }} />
             <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: '0.08em', color: '#ffab00', fontWeight: 700 }}>

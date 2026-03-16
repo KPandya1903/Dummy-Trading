@@ -32,12 +32,12 @@ interface RegimeResult {
 const panelSx = {
   p: 3,
   mb: 3,
-  background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
-  border: '1px solid rgba(201,168,76,0.1)',
+  background: 'linear-gradient(135deg, #111111 0%, #1a1a1a 100%)',
+  border: '1px solid rgba(0,200,5,0.1)',
 };
 
 function indicatorColor(direction: RegimeIndicator['direction']): string {
-  if (direction === 'positive') return '#00c853';
+  if (direction === 'positive') return '#00C805';
   if (direction === 'negative') return '#ff5252';
   return '#ffab00';
 }
