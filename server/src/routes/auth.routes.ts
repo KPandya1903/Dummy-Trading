@@ -55,22 +55,25 @@ router.post('/login', async (req: Request, res: Response) => {
 // ── POST /api/auth/google ─────────────────────────────────
 router.post('/google', async (req: Request, res: Response) => {
   try {
-    const { credential } = req.body;
-    if (!credential) {
+    const { credential, access_token } = req.body;
+    if (!credential && !access_token) {
       res.status(400).json({ error: 'Missing Google credential' });
       return;
     }
 
-    // Verify token with Google
-    const googleRes = await fetch(
-      `https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`,
-    );
-    if (!googleRes.ok) {
+    // Verify via userinfo (access_token) or tokeninfo (id_token)
+    const googleFetch = access_token
+      ? await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${access_token}` },
+        })
+      : await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
+
+    if (!googleFetch.ok) {
       res.status(401).json({ error: 'Invalid Google token' });
       return;
     }
 
-    const gd = await googleRes.json() as { sub: string; email: string; name: string; picture: string };
+    const gd = await googleFetch.json() as { sub: string; email: string; name: string; picture: string };
     const { sub: googleId, email, name, picture } = gd;
 
     if (!email) {
