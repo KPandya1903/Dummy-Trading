@@ -13,8 +13,6 @@ import { Google as GoogleIcon } from '@mui/icons-material';
 import { useGoogleLogin } from '@react-oauth/google';
 import apiClient from '../apiClient';
 
-const API = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
-
 export default function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -25,18 +23,14 @@ export default function LoginPage() {
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
-        const res = await fetch(`${API}/api/auth/google`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ access_token: tokenResponse.access_token }),
+        const { data } = await apiClient.post('/auth/google', {
+          access_token: tokenResponse.access_token,
         });
-        if (!res.ok) throw new Error('Google sign-in failed');
-        const data = await res.json();
         localStorage.setItem('token', data.token);
         localStorage.setItem('userId', String(data.userId));
         navigate('/');
       } catch (err: any) {
-        setError(err.message);
+        setError(err.response?.data?.error || 'Google sign-in failed');
       }
     },
     onError: () => setError('Google sign-in was cancelled'),
