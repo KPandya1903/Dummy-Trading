@@ -36,9 +36,17 @@ router.get('/', async (req: Request, res: Response) => {
     filtered.sort((a, b) => {
       const av = getSortValue(a, sortField);
       const bv = getSortValue(b, sortField);
+      // Push null/zero market caps to the bottom regardless of sort direction
+      if (sortField === 'marketCap' || sortField === 'volume') {
+        const an = av as number;
+        const bn = bv as number;
+        if (an === 0 && bn !== 0) return 1;
+        if (bn === 0 && an !== 0) return -1;
+      }
       if (av < bv) return -1 * dir;
       if (av > bv) return 1 * dir;
-      return 0;
+      // Tiebreak alphabetically so result order is consistent across sectors
+      return a.ticker.localeCompare(b.ticker);
     });
 
     // Paginate
