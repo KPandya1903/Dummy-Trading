@@ -19,9 +19,9 @@ export interface MarketEntry {
   sector: string;
 }
 
-// ── Price cache (30s TTL — Alpaca is real-time) ─────────────
+// ── Price cache (2s TTL — Alpaca real-time feed) ─────────────
 let priceCache: { data: MarketEntry[]; fetchedAt: number } | null = null;
-const PRICE_CACHE_TTL = 30 * 1000;
+const PRICE_CACHE_TTL = 2 * 1000;
 
 // ── Market cap cache (24h TTL — fetched from Yahoo once) ────
 let marketCapCache: { data: Map<string, number>; fetchedAt: number } | null = null;

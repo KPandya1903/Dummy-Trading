@@ -15,7 +15,7 @@ export default function TickerTape() {
   const { data: entries } = useApi<MarketEntry[]>(
     '/market/top',
     { by: 'changePct', limit: 15 },
-    5_000,
+    1_000,
   );
 
   const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');

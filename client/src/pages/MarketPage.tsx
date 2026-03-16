@@ -114,14 +114,14 @@ export default function MarketPage() {
   const { data: response, loading, error } = useApi<MarketResponse>(
     '/market',
     apiParams,
-    5_000,
+    1_000,
   );
 
   // Heatmap uses /market/top endpoint
   const { data: heatmapEntries } = useApi<MarketEntry[]>(
     view === 'heatmap' ? '/market/top' : null,
     { by: 'marketCap', limit: 30 },
-    5_000,
+    1_000,
   );
 
   const handleSort = (field: SortField) => {
