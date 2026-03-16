@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   Box, Typography, Paper, Avatar, Button, TextField, Divider,
-  Grid, Chip, CircularProgress, Alert, Stack,
+  Chip, CircularProgress, Alert, Stack,
 } from '@mui/material';
 import {
   Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon,
@@ -9,8 +9,7 @@ import {
   CalendarToday, LocationOn, Person,
 } from '@mui/icons-material';
 import { useGoogleLogin } from '@react-oauth/google';
-
-const API = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
+import apiClient from '../apiClient';
 
 interface ProfileData {
   id: number;
@@ -57,19 +56,13 @@ export default function ProfilePage() {
   const [saveError, setSaveError] = useState('');
   const [form, setForm] = useState({ name: '', bio: '', location: '' });
 
-  const token = localStorage.getItem('token');
-
   const fetchProfile = async () => {
     try {
-      const res = await fetch(`${API}/api/users/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Failed to load profile');
-      const data: ProfileData = await res.json();
+      const { data } = await apiClient.get<ProfileData>('/users/me');
       setProfile(data);
       setForm({ name: data.name ?? '', bio: data.bio ?? '', location: data.location ?? '' });
     } catch (e: any) {
-      setError(e.message);
+      setError(e.response?.data?.error || 'Failed to load profile');
     } finally {
       setLoading(false);
     }
@@ -81,16 +74,11 @@ export default function ProfilePage() {
     setSaving(true);
     setSaveError('');
     try {
-      const res = await fetch(`${API}/api/users/me`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) throw new Error('Save failed');
+      await apiClient.patch('/users/me', form);
       await fetchProfile();
       setEditing(false);
     } catch (e: any) {
-      setSaveError(e.message);
+      setSaveError(e.response?.data?.error || 'Save failed');
     } finally {
       setSaving(false);
     }
@@ -99,17 +87,10 @@ export default function ProfilePage() {
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
-        // Exchange access token for ID token via userinfo, then post credential
-        // We send the access_token to backend for Google profile fetch
-        const res = await fetch(`${API}/api/auth/google`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ access_token: tokenResponse.access_token }),
-        });
-        if (!res.ok) throw new Error('Google connect failed');
+        await apiClient.post('/auth/google', { access_token: tokenResponse.access_token });
         await fetchProfile();
       } catch (e: any) {
-        setSaveError('Google connect failed: ' + e.message);
+        setSaveError('Google connect failed: ' + (e.response?.data?.error || e.message));
       }
     },
     onError: () => setSaveError('Google sign-in was cancelled'),
