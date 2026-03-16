@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  CircularProgress,
   ToggleButtonGroup,
   ToggleButton,
   FormControlLabel,
@@ -20,6 +19,8 @@ import {
   Legend,
 } from 'recharts';
 import apiClient from '../apiClient';
+import PageLoader from './ui/PageLoader';
+import ChartEmptyState from './ui/ChartEmptyState';
 import {
   CHART_COLORS,
   CHART_TOOLTIP_STYLE,
@@ -142,22 +143,10 @@ export default function DashboardPerformanceChart({
     };
   }, [portfolioIds.join(','), totalStartingCash]);
 
-  if (loading) {
-    return (
-      <Box textAlign="center" py={4}>
-        <CircularProgress size={24} />
-      </Box>
-    );
-  }
+  if (loading) return <PageLoader variant="chart" />;
 
   if (chartData.length === 0) {
-    return (
-      <Box py={4} textAlign="center">
-        <Typography variant="body2" color="text.secondary">
-          Your performance chart will update daily starting tomorrow
-        </Typography>
-      </Box>
-    );
+    return <ChartEmptyState message="Your performance chart will update daily starting tomorrow" height={260} />;
   }
 
   // Filter by period
@@ -227,6 +216,7 @@ export default function DashboardPerformanceChart({
       </Box>
 
       {/* Chart */}
+      <Box role="img" aria-label={`Portfolio performance chart — ${period} period, ${mode === '%' ? 'percentage' : 'dollar'} mode`}>
       <ResponsiveContainer width="100%" height={260}>
         <LineChart data={finalData}>
           <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_COLOR} />
@@ -296,6 +286,7 @@ export default function DashboardPerformanceChart({
           )}
         </LineChart>
       </ResponsiveContainer>
+      </Box>
 
       {/* Benchmark checkbox */}
       {hasBenchmark && (

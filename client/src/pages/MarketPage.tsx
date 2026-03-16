@@ -12,7 +12,6 @@ import {
   TablePagination,
   Paper,
   Box,
-  CircularProgress,
   Alert,
   Chip,
   IconButton,
@@ -40,6 +39,7 @@ import MarketHeatmap from '../components/MarketHeatmap';
 import SP500IndexChart from '../components/SP500IndexChart';
 import MarketClassifierTiles from '../components/MarketClassifierTiles';
 import MarketRegimePanel from '../components/MarketRegimePanel';
+import PageLoader from '../components/ui/PageLoader';
 
 interface MarketEntry {
   ticker: string;
@@ -133,13 +133,7 @@ export default function MarketPage() {
     }
   };
 
-  if (loading && !response) {
-    return (
-      <Box textAlign="center" mt={8}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  if (loading && !response) return <PageLoader />;
 
   const entries = response?.data ?? [];
   const pagination = response?.pagination;

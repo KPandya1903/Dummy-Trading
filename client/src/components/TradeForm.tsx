@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Stack,
   TextField,
   Button,
   MenuItem,
-  Alert,
   Typography,
   Paper,
   Box,
@@ -19,6 +18,7 @@ import {
   Divider,
 } from '@mui/material';
 import apiClient from '../apiClient';
+import { useToast } from '../context/ToastContext';
 
 type OrderType = 'MARKET' | 'LIMIT' | 'STOP';
 
@@ -74,10 +74,11 @@ export default function TradeForm({
   const [priceLoading, setPriceLoading] = useState(false);
   const [stockName, setStockName] = useState('');
 
+  const { showToast } = useToast();
+  const step1Ref = useRef<HTMLInputElement>(null);
+  const step2Ref = useRef<HTMLInputElement>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const [serverError, setServerError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
 
   // Sync initialTicker prop changes (e.g. from quick trade)
   useEffect(() => {
@@ -219,7 +220,6 @@ export default function TradeForm({
 
   const executeTrade = async () => {
     setSubmitting(true);
-    setServerError('');
     try {
       if (isLimitOrStop) {
         const { data } = await apiClient.post('/orders', {
@@ -230,7 +230,7 @@ export default function TradeForm({
           orderType,
           targetPrice: Number(targetPrice),
         });
-        setSuccessMsg(
+        showToast(
           `${orderType} order placed: ${data.side} ${data.quantity} × ${data.ticker} @ target $${Number(data.targetPrice).toFixed(2)}`,
         );
       } else {
@@ -244,12 +244,12 @@ export default function TradeForm({
         if (data.newBadges && data.newBadges.length > 0) {
           msg += ` | New badge${data.newBadges.length > 1 ? 's' : ''}: ${data.newBadges.join(', ')}`;
         }
-        setSuccessMsg(msg);
+        showToast(msg);
       }
       resetForm();
       onSuccess();
     } catch (err: any) {
-      setServerError(err.response?.data?.error || 'Trade failed');
+      showToast(err.response?.data?.error || 'Trade failed', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -265,17 +265,6 @@ export default function TradeForm({
         New Trade
       </Typography>
 
-      {serverError && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setServerError('')}>
-          {serverError}
-        </Alert>
-      )}
-      {successMsg && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccessMsg('')}>
-          {successMsg}
-        </Alert>
-      )}
-
       <Stepper activeStep={activeStep} sx={{ mb: 3 }}>
         {STEPS.map((label) => (
           <Step key={label}>
@@ -285,13 +274,13 @@ export default function TradeForm({
       </Stepper>
 
       {/* ── Step 1: Select Stock ─────────────────────────── */}
-      <Collapse in={activeStep === 0} timeout={350} unmountOnExit>
+      <Collapse in={activeStep === 0} timeout={350} unmountOnExit onEntered={() => step1Ref.current?.focus()}>
         <Box sx={{ maxWidth: 480, mx: 'auto' }}>
           <Autocomplete
             freeSolo
             options={searchOptions}
             getOptionLabel={(opt) =>
-              typeof opt === 'string' ? opt : opt.ticker
+              typeof opt === 'string' ? opt : `${opt.ticker} — ${opt.name}`
             }
             inputValue={searchInput}
             onInputChange={(_e, value) => {
@@ -316,6 +305,7 @@ export default function TradeForm({
               }
             }}
             loading={searchLoading}
+            componentsProps={{ listbox: { 'aria-label': 'Stock search results' } }}
             renderOption={(props, option) => (
               <Box component="li" {...props} key={option.ticker}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', gap: 2 }}>
@@ -346,8 +336,11 @@ export default function TradeForm({
               <TextField
                 {...params}
                 label="Search for a stock"
+                inputRef={step1Ref}
                 error={!!fieldErrors.ticker}
                 helperText={fieldErrors.ticker}
+                inputProps={{ ...params.inputProps, 'aria-describedby': 'ticker-error' }}
+                FormHelperTextProps={{ id: 'ticker-error' }}
                 fullWidth
               />
             )}
@@ -409,7 +402,7 @@ export default function TradeForm({
       </Collapse>
 
       {/* ── Step 2: Configure Order ──────────────────────── */}
-      <Collapse in={activeStep === 1} timeout={350} unmountOnExit>
+      <Collapse in={activeStep === 1} timeout={350} unmountOnExit onEntered={() => step2Ref.current?.focus()}>
         <Box sx={{ maxWidth: 400, mx: 'auto' }}>
           {/* Ticker + price reminder */}
           <Box
@@ -436,7 +429,7 @@ export default function TradeForm({
             exclusive
             onChange={(_e, v) => { if (v) setSide(v); }}
             fullWidth
-            sx={{ mb: 2.5 }}
+            sx={{ mb: 3 }}
           >
             <ToggleButton
               value="BUY"
@@ -471,7 +464,7 @@ export default function TradeForm({
             value={orderType}
             onChange={(e) => setOrderType(e.target.value as OrderType)}
             fullWidth
-            sx={{ mb: 2.5 }}
+            sx={{ mb: 3 }}
           >
             <MenuItem value="MARKET">Market</MenuItem>
             <MenuItem value="LIMIT">Limit</MenuItem>
@@ -482,6 +475,7 @@ export default function TradeForm({
           <TextField
             label="Quantity"
             type="number"
+            inputRef={step2Ref}
             value={quantity}
             onChange={(e) => {
               setQuantity(e.target.value);
@@ -490,8 +484,10 @@ export default function TradeForm({
             }}
             error={!!fieldErrors.quantity}
             helperText={fieldErrors.quantity}
+            inputProps={{ 'aria-describedby': 'quantity-error' }}
+            FormHelperTextProps={{ id: 'quantity-error' }}
             fullWidth
-            sx={{ mb: 2.5 }}
+            sx={{ mb: 3 }}
           />
 
           {/* Limit / Stop price */}
@@ -507,9 +503,10 @@ export default function TradeForm({
               }}
               error={!!fieldErrors.targetPrice}
               helperText={fieldErrors.targetPrice}
+              inputProps={{ step: '0.01', 'aria-describedby': 'target-price-error' }}
+              FormHelperTextProps={{ id: 'target-price-error' }}
               fullWidth
-              sx={{ mb: 2.5 }}
-              inputProps={{ step: '0.01' }}
+              sx={{ mb: 3 }}
             />
           )}
 

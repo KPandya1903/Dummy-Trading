@@ -13,13 +13,13 @@ import {
   DialogContent,
   DialogActions,
   Alert,
-  CircularProgress,
   Box,
   Chip,
 } from '@mui/material';
 import GroupIcon from '@mui/icons-material/Group';
 import apiClient from '../apiClient';
 import useApi from '../hooks/useApi';
+import PageLoader from '../components/ui/PageLoader';
 
 interface Group {
   id: number;
@@ -91,13 +91,7 @@ export default function GroupListPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <Box textAlign="center" mt={8}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  if (loading) return <PageLoader variant="cards" />;
 
   return (
     <>

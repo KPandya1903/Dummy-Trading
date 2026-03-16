@@ -4,8 +4,8 @@ import {
   Typography,
   ToggleButtonGroup,
   ToggleButton,
-  CircularProgress,
 } from '@mui/material';
+import PageLoader from './ui/PageLoader';
 import {
   AreaChart,
   Area,
@@ -81,10 +81,9 @@ export default function SP500IndexChart() {
       </Box>
 
       {loading && points.length === 0 ? (
-        <Box textAlign="center" py={4}>
-          <CircularProgress size={24} />
-        </Box>
+        <PageLoader variant="chart" />
       ) : (
+        <Box role="img" aria-label={`S&P 500 index chart — ${period} period`}>
         <ResponsiveContainer width="100%" height={240}>
           <AreaChart data={points}>
             <defs>
@@ -124,6 +123,7 @@ export default function SP500IndexChart() {
             />
           </AreaChart>
         </ResponsiveContainer>
+        </Box>
       )}
     </Box>
   );

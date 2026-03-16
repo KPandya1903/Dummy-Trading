@@ -14,7 +14,6 @@ import {
   TableRow,
   Chip,
   Box,
-  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -25,6 +24,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import useApi from '../hooks/useApi';
 import apiClient from '../apiClient';
 import TradeForm from '../components/TradeForm';
+import PageLoader from '../components/ui/PageLoader';
 
 interface WatchlistItem {
   id: number;
@@ -89,13 +89,7 @@ export default function WatchlistPage() {
     setBuyOpen(true);
   };
 
-  if (loading) {
-    return (
-      <Box textAlign="center" mt={8}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  if (loading) return <PageLoader variant="table" />;
 
   return (
     <>

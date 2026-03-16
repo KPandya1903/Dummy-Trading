@@ -35,6 +35,8 @@ export default function MarketHeatmap({ entries }: { entries: MarketEntry[] }) {
   return (
     <Paper variant="outlined" sx={{ p: 1 }}>
       <Box
+        role="list"
+        aria-label="Market heatmap"
         sx={{
           display: 'flex',
           flexWrap: 'wrap',
@@ -66,6 +68,10 @@ export default function MarketHeatmap({ entries }: { entries: MarketEntry[] }) {
               arrow
             >
               <Box
+                role="listitem"
+                aria-label={`${e.ticker}: ${e.changePct >= 0 ? '+' : ''}${e.changePct.toFixed(2)}%`}
+                tabIndex={0}
+                onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') navigate(`/stocks/${e.ticker}`); }}
                 onClick={() => navigate(`/stocks/${e.ticker}`)}
                 sx={{
                   bgcolor: getColor(e.changePct),

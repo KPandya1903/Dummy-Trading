@@ -8,13 +8,16 @@ import '@fontsource/inter/600.css';
 import '@fontsource/inter/700.css';
 import theme from './theme';
 import App from './App';
+import { ToastProvider } from './context/ToastContext';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <App />
+        <ToastProvider>
+          <App />
+        </ToastProvider>
       </ThemeProvider>
     </BrowserRouter>
   </React.StrictMode>,

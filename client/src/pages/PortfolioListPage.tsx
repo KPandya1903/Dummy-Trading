@@ -14,13 +14,13 @@ import {
   DialogContentText,
   DialogActions,
   Alert,
-  CircularProgress,
   Box,
   IconButton,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import apiClient from '../apiClient';
 import useApi from '../hooks/useApi';
+import PageLoader from '../components/ui/PageLoader';
 
 interface Portfolio {
   id: number;
@@ -79,13 +79,7 @@ export default function PortfolioListPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <Box textAlign="center" mt={8}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  if (loading) return <PageLoader variant="table" />;
 
   return (
     <>

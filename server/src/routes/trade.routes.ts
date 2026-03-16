@@ -4,6 +4,7 @@ import { TradeSide } from '@prisma/client';
 import { authenticate } from '../middleware/auth.js';
 import { getCurrentPrices } from '../services/priceService.js';
 import { checkBadges } from '../services/badgeService.js';
+import { checkAllowedTicker, checkCompetitionWindow, checkDailyTradeLimit } from '../services/tradeValidation.js';
 
 const router = Router();
 router.use(authenticate);
@@ -46,39 +47,21 @@ router.post('/', async (req: Request, res: Response) => {
     const upperTicker = ticker.toUpperCase();
     if (portfolio.group) {
       const g = portfolio.group;
-      const now = new Date();
 
-      if (g.startDate && now < g.startDate) {
-        res.status(400).json({ error: `Competition hasn't started yet (starts ${g.startDate.toISOString().split('T')[0]})` });
-        return;
-      }
+      const windowError = checkCompetitionWindow(g.startDate, g.endDate, new Date());
+      if (windowError) { res.status(400).json({ error: windowError }); return; }
 
-      if (g.endDate && now > g.endDate) {
-        res.status(400).json({ error: `Competition has ended (ended ${g.endDate.toISOString().split('T')[0]})` });
-        return;
-      }
-
-      if (g.allowedTickers) {
-        const allowed = g.allowedTickers.split(',').map((t) => t.trim().toUpperCase());
-        if (!allowed.includes(upperTicker)) {
-          res.status(400).json({ error: `${upperTicker} is not allowed in this group. Allowed: ${allowed.join(', ')}` });
-          return;
-        }
-      }
+      const tickerError = checkAllowedTicker(g.allowedTickers, upperTicker);
+      if (tickerError) { res.status(400).json({ error: tickerError }); return; }
 
       if (g.maxTradesPerDay != null) {
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
         const todayCount = await prisma.trade.count({
-          where: {
-            portfolioId: portfolio.id,
-            executedAt: { gte: todayStart },
-          },
+          where: { portfolioId: portfolio.id, executedAt: { gte: todayStart } },
         });
-        if (todayCount >= g.maxTradesPerDay) {
-          res.status(400).json({ error: `Daily trade limit reached (${g.maxTradesPerDay} trades/day)` });
-          return;
-        }
+        const limitError = checkDailyTradeLimit(g.maxTradesPerDay, todayCount);
+        if (limitError) { res.status(400).json({ error: limitError }); return; }
       }
     }
     const prices = await getCurrentPrices([upperTicker]);
@@ -165,11 +148,14 @@ router.get('/export', async (req: Request, res: Response) => {
       orderBy: { executedAt: 'desc' },
     });
 
+    const csvField = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
     const header = 'Date,Ticker,Side,Quantity,Price,Total';
     const rows = trades.map((t) => {
       const date = t.executedAt.toISOString().split('T')[0];
       const total = (t.quantity * t.price).toFixed(2);
-      return `${date},${t.ticker},${t.side},${t.quantity},${t.price.toFixed(2)},${total}`;
+      return [date, t.ticker, t.side, t.quantity, t.price.toFixed(2), total]
+        .map(csvField)
+        .join(',');
     });
 
     const csv = [header, ...rows].join('\n');

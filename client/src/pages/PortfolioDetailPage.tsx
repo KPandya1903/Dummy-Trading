@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, Link as RouterLink } from 'react-router-dom';
 import {
   Typography,
@@ -13,8 +14,14 @@ import {
   Chip,
   Box,
   Alert,
-  CircularProgress,
   IconButton,
+  Breadcrumbs,
+  Link as MuiLink,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import CancelIcon from '@mui/icons-material/Cancel';
 import useApi from '../hooks/useApi';
@@ -26,6 +33,8 @@ import SectorChart from '../components/SectorChart';
 import PortfolioRiskMetrics from '../components/PortfolioRiskMetrics';
 import PositionSizingPanel from '../components/PositionSizingPanel';
 import BehavioralBiasPanel from '../components/BehavioralBiasPanel';
+import PageLoader from '../components/ui/PageLoader';
+import { useToast } from '../context/ToastContext';
 
 interface Position {
   ticker: string;
@@ -85,11 +94,19 @@ export default function PortfolioDetailPage() {
     refetch: refetchOrders,
   } = useApi<PendingOrder[]>('/orders', { portfolioId: id });
 
-  const cancelOrder = async (orderId: number) => {
+  const [cancelTarget, setCancelTarget] = useState<number | null>(null);
+  const { showToast } = useToast();
+
+  const cancelOrder = async () => {
+    if (cancelTarget === null) return;
     try {
-      await apiClient.delete(`/orders/${orderId}`);
+      await apiClient.delete(`/orders/${cancelTarget}`);
       refetchOrders();
-    } catch { /* ignore */ }
+    } catch {
+      showToast('Failed to cancel order. Please try again.', 'error');
+    } finally {
+      setCancelTarget(null);
+    }
   };
 
   const handleTradeSuccess = () => {
@@ -97,13 +114,7 @@ export default function PortfolioDetailPage() {
     refetchOrders();
   };
 
-  if (loading) {
-    return (
-      <Box textAlign="center" mt={8}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  if (loading) return <PageLoader variant="table" />;
 
   if (error) {
     return <Alert severity="error">{error}</Alert>;
@@ -115,9 +126,12 @@ export default function PortfolioDetailPage() {
 
   return (
     <>
-      <Button component={RouterLink} to="/portfolios" sx={{ mb: 1 }}>
-        &larr; All Portfolios
-      </Button>
+      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
+        <MuiLink component={RouterLink} to="/portfolios" color="inherit" underline="hover">
+          Portfolios
+        </MuiLink>
+        <Typography color="text.primary">{summary.name}</Typography>
+      </Breadcrumbs>
 
       <Typography variant="h4" gutterBottom>
         {summary.name}
@@ -126,7 +140,7 @@ export default function PortfolioDetailPage() {
       {/* ── Summary stats ─────────────────────────────── */}
       <Stack
         direction="row"
-        spacing={3.5}
+        spacing={4}
         mb={4}
         flexWrap="wrap"
         useFlexGap
@@ -285,8 +299,8 @@ export default function PortfolioDetailPage() {
                         <IconButton
                           size="small"
                           color="error"
-                          onClick={() => cancelOrder(o.id)}
-                          title="Cancel order"
+                          onClick={() => setCancelTarget(o.id)}
+                          aria-label={`Cancel order: ${o.side} ${o.quantity} ${o.ticker}`}
                         >
                           <CancelIcon fontSize="small" />
                         </IconButton>
@@ -298,6 +312,22 @@ export default function PortfolioDetailPage() {
           </TableContainer>
         </>
       )}
+
+      {/* ── Cancel order confirmation ─────────────────── */}
+      <Dialog open={cancelTarget !== null} onClose={() => setCancelTarget(null)}>
+        <DialogTitle>Cancel Order</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to cancel this pending order? This cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCancelTarget(null)}>Keep Order</Button>
+          <Button color="error" variant="contained" onClick={cancelOrder}>
+            Cancel Order
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* ── Trade form ────────────────────────────────── */}
       <TradeForm portfolioId={summary.portfolioId} onSuccess={handleTradeSuccess} />

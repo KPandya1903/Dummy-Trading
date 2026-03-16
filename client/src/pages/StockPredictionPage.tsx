@@ -40,6 +40,7 @@ import {
 } from 'recharts';
 import useApi from '../hooks/useApi';
 import GeminiInsightPanel from '../components/GeminiInsightPanel';
+import PageLoader from '../components/ui/PageLoader';
 import {
   CHART_COLORS,
   CHART_TOOLTIP_STYLE,
@@ -727,16 +728,7 @@ export default function StockPredictionPage() {
     { horizon },
   );
 
-  if (loading && !data) {
-    return (
-      <Box textAlign="center" mt={8}>
-        <CircularProgress />
-        <Typography variant="body2" color="text.secondary" mt={2}>
-          Training prediction models... This may take a few seconds.
-        </Typography>
-      </Box>
-    );
-  }
+  if (loading && !data) return <PageLoader />;
 
   if (error) {
     return <Alert severity="error">{error}</Alert>;

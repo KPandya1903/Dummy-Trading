@@ -9,11 +9,11 @@ import {
   Paper,
   Chip,
   Box,
-  CircularProgress,
   Alert,
 } from '@mui/material';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import useApi from '../hooks/useApi';
+import PageLoader from '../components/ui/PageLoader';
 
 interface LeaderboardEntry {
   portfolioId: number;
@@ -36,13 +36,7 @@ export default function LeaderboardPage() {
     '/leaderboard',
   );
 
-  if (loading) {
-    return (
-      <Box textAlign="center" mt={8}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  if (loading) return <PageLoader variant="table" />;
 
   return (
     <>

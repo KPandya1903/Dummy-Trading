@@ -1,6 +1,19 @@
 import prisma from '../prisma.js';
 import { getCurrentPrices } from './priceService.js';
 
+export function shouldFillOrder(
+  orderType: 'LIMIT' | 'STOP',
+  side: 'BUY' | 'SELL',
+  currentPrice: number,
+  targetPrice: number,
+): boolean {
+  if (orderType === 'LIMIT' && side === 'BUY')  return currentPrice <= targetPrice;
+  if (orderType === 'LIMIT' && side === 'SELL') return currentPrice >= targetPrice;
+  if (orderType === 'STOP'  && side === 'SELL') return currentPrice <= targetPrice;
+  if (orderType === 'STOP'  && side === 'BUY')  return currentPrice >= targetPrice;
+  return false;
+}
+
 /**
  * Checks all PENDING orders and fills any that meet their trigger condition.
  * Runs on a setInterval in the server entry point.
@@ -20,23 +33,7 @@ export async function checkPendingOrders(): Promise<void> {
     const currentPrice = prices[order.ticker];
     if (!currentPrice) continue;
 
-    let shouldFill = false;
-
-    if (order.orderType === 'LIMIT' && order.side === 'BUY') {
-      // Fill if market price drops to or below limit
-      shouldFill = currentPrice <= order.targetPrice;
-    } else if (order.orderType === 'LIMIT' && order.side === 'SELL') {
-      // Fill if market price rises to or above limit
-      shouldFill = currentPrice >= order.targetPrice;
-    } else if (order.orderType === 'STOP' && order.side === 'SELL') {
-      // Stop-loss: fill if market price drops to or below stop price
-      shouldFill = currentPrice <= order.targetPrice;
-    } else if (order.orderType === 'STOP' && order.side === 'BUY') {
-      // Stop-buy: fill if market price rises to or above stop price
-      shouldFill = currentPrice >= order.targetPrice;
-    }
-
-    if (shouldFill) {
+    if (shouldFillOrder(order.orderType, order.side, currentPrice, order.targetPrice)) {
       await prisma.$transaction([
         prisma.trade.create({
           data: {

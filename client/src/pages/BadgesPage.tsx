@@ -2,13 +2,13 @@ import {
   Typography,
   Box,
   Alert,
-  CircularProgress,
   Grid,
   Paper,
 } from '@mui/material';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import LockIcon from '@mui/icons-material/Lock';
 import useApi from '../hooks/useApi';
+import PageLoader from '../components/ui/PageLoader';
 
 interface BadgeInfo {
   badge: string;
@@ -30,13 +30,7 @@ const BADGE_EMOJI: Record<string, string> = {
 export default function BadgesPage() {
   const { data: badges, loading, error } = useApi<BadgeInfo[]>('/badges');
 
-  if (loading) {
-    return (
-      <Box textAlign="center" mt={8}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  if (loading) return <PageLoader variant="cards" />;
 
   if (error) {
     return <Alert severity="error">{error}</Alert>;

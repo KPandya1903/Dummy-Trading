@@ -1,0 +1,8 @@
+{
+  "name": "Dummy Trading Architecture",
+  "id": "dummy-trading-arch-2024",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"]
+}

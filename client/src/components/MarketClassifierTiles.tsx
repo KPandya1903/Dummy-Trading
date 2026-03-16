@@ -3,10 +3,10 @@ import {
   Box,
   Typography,
   Paper,
-  CircularProgress,
   Chip,
   Link,
 } from '@mui/material';
+import PageLoader from './ui/PageLoader';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import BarChartIcon from '@mui/icons-material/BarChart';
@@ -70,13 +70,7 @@ export default function MarketClassifierTiles() {
     5_000,
   );
 
-  if (loading && !data) {
-    return (
-      <Box textAlign="center" py={2}>
-        <CircularProgress size={24} />
-      </Box>
-    );
-  }
+  if (loading && !data) return <PageLoader variant="cards" />;
 
   const classifiers = data?.classifiers ?? [];
 

@@ -1,4 +1,4 @@
-import { buildPositions, computeSummary, TradeInput } from './portfolioService.js';
+import { buildPositions, computeSummary, computeHistory, TradeInput, HistoryTradeInput } from './portfolioService.js';
 
 describe('buildPositions', () => {
   it('handles a single BUY', () => {
@@ -175,5 +175,86 @@ describe('computeSummary', () => {
     expect(summary.cashRemaining).toBe(99_546.01);
     // unrealized = (155.77 - 151.33) * 3 = 13.32
     expect(summary.unrealizedPnL).toBe(13.32);
+  });
+});
+
+describe('computeHistory', () => {
+  const STARTING_CASH = 100_000;
+
+  it('returns empty array for no trades', () => {
+    expect(computeHistory([], STARTING_CASH)).toEqual([]);
+  });
+
+  it('creates a single point for a single trade', () => {
+    const trades: HistoryTradeInput[] = [
+      { ticker: 'AAPL', side: 'BUY', quantity: 10, price: 150, executedAt: new Date('2024-01-15') },
+    ];
+    const points = computeHistory(trades, STARTING_CASH);
+
+    expect(points).toHaveLength(1);
+    expect(points[0].date).toBe('2024-01-15');
+    // cash = 100000 - 1500 = 98500; positions = 10*150 = 1500; total = 100000
+    expect(points[0].totalValue).toBe(100_000);
+  });
+
+  it('collapses multiple trades on the same date into one point', () => {
+    const day = new Date('2024-01-15');
+    const trades: HistoryTradeInput[] = [
+      { ticker: 'AAPL', side: 'BUY', quantity: 10, price: 100, executedAt: day },
+      { ticker: 'GOOG', side: 'BUY', quantity: 5,  price: 200, executedAt: day },
+    ];
+    const points = computeHistory(trades, STARTING_CASH);
+
+    expect(points).toHaveLength(1);
+    expect(points[0].date).toBe('2024-01-15');
+    // cash = 100000 - 1000 - 1000 = 98000; positions = 1000 + 1000 = 2000; total = 100000
+    expect(points[0].totalValue).toBe(100_000);
+  });
+
+  it('creates separate points for trades on different dates', () => {
+    const trades: HistoryTradeInput[] = [
+      { ticker: 'AAPL', side: 'BUY',  quantity: 10, price: 100, executedAt: new Date('2024-01-10') },
+      { ticker: 'AAPL', side: 'SELL', quantity: 5,  price: 130, executedAt: new Date('2024-01-20') },
+    ];
+    const points = computeHistory(trades, STARTING_CASH);
+
+    expect(points).toHaveLength(2);
+    expect(points[0].date).toBe('2024-01-10');
+    expect(points[1].date).toBe('2024-01-20');
+  });
+
+  it('returns points in ascending date order regardless of input order', () => {
+    const trades: HistoryTradeInput[] = [
+      { ticker: 'AAPL', side: 'BUY', quantity: 5, price: 100, executedAt: new Date('2024-02-01') },
+      { ticker: 'AAPL', side: 'BUY', quantity: 5, price: 100, executedAt: new Date('2024-01-01') },
+    ];
+    const points = computeHistory(trades, STARTING_CASH);
+
+    expect(points[0].date < points[1].date).toBe(true);
+  });
+
+  it('reflects realized gain after a full sell above cost', () => {
+    const trades: HistoryTradeInput[] = [
+      { ticker: 'AAPL', side: 'BUY',  quantity: 10, price: 100, executedAt: new Date('2024-01-01') },
+      { ticker: 'AAPL', side: 'SELL', quantity: 10, price: 150, executedAt: new Date('2024-02-01') },
+    ];
+    const points = computeHistory(trades, STARTING_CASH);
+    const sellPoint = points.find((p) => p.date === '2024-02-01')!;
+
+    // cash = 100000 - 1000 + 1500 = 100500; no positions remaining
+    expect(sellPoint.totalValue).toBe(100_500);
+  });
+
+  it('uses the latest trade price as market price for open positions', () => {
+    const trades: HistoryTradeInput[] = [
+      { ticker: 'AAPL', side: 'BUY', quantity: 10, price: 100, executedAt: new Date('2024-01-01') },
+      { ticker: 'AAPL', side: 'BUY', quantity: 10, price: 200, executedAt: new Date('2024-02-01') },
+    ];
+    const points = computeHistory(trades, STARTING_CASH);
+    const secondPoint = points.find((p) => p.date === '2024-02-01')!;
+
+    // After second trade: latestPrices = { AAPL: 200 }
+    // cash = 100000 - 1000 - 2000 = 97000; positions = 20 * 200 = 4000; total = 101000
+    expect(secondPoint.totalValue).toBe(101_000);
   });
 });

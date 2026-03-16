@@ -3,7 +3,6 @@ import {
   Typography,
   Box,
   Alert,
-  CircularProgress,
   Button,
   MenuItem,
   TextField,
@@ -12,6 +11,7 @@ import {
 import useApi from '../hooks/useApi';
 import TradeForm from '../components/TradeForm';
 import { useState } from 'react';
+import PageLoader from '../components/ui/PageLoader';
 
 interface Portfolio {
   id: number;
@@ -27,13 +27,7 @@ export default function TradePage() {
   const { data: portfolios, loading, error } = useApi<Portfolio[]>('/portfolios');
   const [selectedId, setSelectedId] = useState<number | ''>('');
 
-  if (loading) {
-    return (
-      <Box textAlign="center" mt={8}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  if (loading) return <PageLoader />;
 
   if (error) {
     return <Alert severity="error">{error}</Alert>;

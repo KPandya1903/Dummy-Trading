@@ -3,12 +3,14 @@ import {
   Typography,
   Box,
   Alert,
-  CircularProgress,
   Button,
   Chip,
   Paper,
   Grid,
 } from '@mui/material';
+import PageLoader from '../components/ui/PageLoader';
+import StatCard from '../components/ui/StatCard';
+import ChartEmptyState from '../components/ui/ChartEmptyState';
 import {
   LineChart,
   Line,
@@ -47,26 +49,6 @@ function fmt(n: number | null): string {
   return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
-  return (
-    <Paper
-      variant="outlined"
-      sx={{
-        p: 2.5,
-        textAlign: 'center',
-        background: 'linear-gradient(135deg, #111d31 0%, #162240 100%)',
-        border: '1px solid rgba(201,168,76,0.1)',
-      }}
-    >
-      <Typography variant="caption" color="text.secondary">
-        {label}
-      </Typography>
-      <Typography variant="body1" fontWeight="bold">
-        {value}
-      </Typography>
-    </Paper>
-  );
-}
 
 export default function StockDetailPage() {
   const { ticker } = useParams<{ ticker: string }>();
@@ -74,13 +56,7 @@ export default function StockDetailPage() {
     ticker ? `/quotes/${ticker}` : null,
   );
 
-  if (loading) {
-    return (
-      <Box textAlign="center" mt={8}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  if (loading) return <PageLoader />;
 
   if (error) {
     return (
@@ -124,7 +100,7 @@ export default function StockDetailPage() {
       </Box>
 
       {/* ── Stats grid ──────────────────────────────────── */}
-      <Grid container spacing={2.5} sx={{ mb: 4 }}>
+      <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={6} sm={3}>
           <StatCard label="Market Cap" value={quote.marketCap !== null ? `$${fmt(quote.marketCap)}B` : 'N/A'} />
         </Grid>
@@ -156,12 +132,15 @@ export default function StockDetailPage() {
       <FactorScorecard ticker={quote.ticker} />
 
       {/* ── Price chart ─────────────────────────────────── */}
-      {quote.history.length > 0 && (
-        <>
-          <Typography variant="h6" gutterBottom>
-            1-Year Price History
-          </Typography>
-          <Paper variant="outlined" sx={{ p: 2, mb: 4 }}>
+      <>
+        <Typography variant="h6" gutterBottom>
+          1-Year Price History
+        </Typography>
+        <Paper variant="outlined" sx={{ p: 2, mb: 4 }}>
+          {quote.history.length === 0 ? (
+            <ChartEmptyState message="No price history available" height={300} />
+          ) : (
+            <Box role="img" aria-label={`${quote.ticker} 1-year price history chart`}>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={quote.history}>
                 <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_COLOR} />
@@ -187,9 +166,10 @@ export default function StockDetailPage() {
                 />
               </LineChart>
             </ResponsiveContainer>
-          </Paper>
-        </>
-      )}
+            </Box>
+          )}
+        </Paper>
+      </>
 
       {/* ── Action buttons ─────────────────────────────── */}
       <Box display="flex" gap={2} flexWrap="wrap" mb={3}>

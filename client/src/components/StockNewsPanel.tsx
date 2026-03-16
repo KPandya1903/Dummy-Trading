@@ -3,11 +3,11 @@ import {
   Box,
   Typography,
   Paper,
-  CircularProgress,
   Chip,
   Button,
   Link,
 } from '@mui/material';
+import PageLoader from './ui/PageLoader';
 import useApi from '../hooks/useApi';
 
 interface NewsResponse {
@@ -44,16 +44,7 @@ export default function StockNewsPanel({ ticker }: { ticker: string }) {
     );
   }
 
-  if (loading) {
-    return (
-      <Box textAlign="center" py={3}>
-        <CircularProgress size={24} />
-        <Typography variant="caption" display="block" color="text.secondary" mt={1}>
-          Generating AI news summary...
-        </Typography>
-      </Box>
-    );
-  }
+  if (loading) return <PageLoader />;
 
   if (!data) return null;
 

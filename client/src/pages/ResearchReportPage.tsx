@@ -25,6 +25,7 @@ import {
 import apiClient from '../apiClient';
 import ResearchProgressBar from '../components/ResearchProgressBar';
 import ResearchNarrativeTile from '../components/ResearchNarrativeTile';
+import PageLoader from '../components/ui/PageLoader';
 import {
   CHART_COLORS,
   CHART_TOOLTIP_STYLE,
@@ -150,13 +151,7 @@ export default function ResearchReportPage() {
     return () => eventSource.close();
   }, [id, sseStatus, data?.narratives.length, fetchResearch]);
 
-  if (loading) {
-    return (
-      <Box textAlign="center" mt={8}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  if (loading) return <PageLoader />;
 
   if (error) {
     return (

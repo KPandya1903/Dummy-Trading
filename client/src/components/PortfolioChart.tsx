@@ -1,4 +1,5 @@
-import { Box, Typography, CircularProgress } from '@mui/material';
+import { Box, Typography } from '@mui/material';
+import PageLoader from './ui/PageLoader';
 import {
   LineChart,
   Line,
@@ -35,13 +36,7 @@ export default function PortfolioChart({ portfolioId }: { portfolioId: number })
     `/portfolios/${portfolioId}/history`,
   );
 
-  if (loading) {
-    return (
-      <Box textAlign="center" py={4}>
-        <CircularProgress size={24} />
-      </Box>
-    );
-  }
+  if (loading) return <PageLoader variant="chart" />;
 
   if (!data || data.history.length === 0) {
     return (

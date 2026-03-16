@@ -12,7 +12,6 @@ import {
   Chip,
   Button,
   Box,
-  CircularProgress,
   Alert,
   Dialog,
   DialogTitle,
@@ -22,12 +21,15 @@ import {
   TextField,
   Tooltip,
   IconButton,
+  Breadcrumbs,
+  Link as MuiLink,
 } from '@mui/material';
 import RateReviewIcon from '@mui/icons-material/RateReview';
 import DeleteIcon from '@mui/icons-material/Delete';
 import DownloadIcon from '@mui/icons-material/Download';
 import useApi from '../hooks/useApi';
 import apiClient from '../apiClient';
+import PageLoader from '../components/ui/PageLoader';
 
 interface Trade {
   id: number;
@@ -101,19 +103,19 @@ export default function TradeHistoryPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <Box textAlign="center" mt={8}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  if (loading) return <PageLoader variant="table" />;
 
   return (
     <>
-      <Button component={RouterLink} to={`/portfolios/${id}`} sx={{ mb: 2 }}>
-        &larr; Back to portfolio
-      </Button>
+      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
+        <MuiLink component={RouterLink} to="/portfolios" color="inherit" underline="hover">
+          Portfolios
+        </MuiLink>
+        <MuiLink component={RouterLink} to={`/portfolios/${id}`} color="inherit" underline="hover">
+          Portfolio
+        </MuiLink>
+        <Typography color="text.primary">Trade History</Typography>
+      </Breadcrumbs>
 
       <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
         <Typography variant="h4">Trade History</Typography>

@@ -1,4 +1,7 @@
-import { Box, Typography } from '@mui/material';
+import { useState } from 'react';
+import { Box, Typography, IconButton, useMediaQuery } from '@mui/material';
+import PauseIcon from '@mui/icons-material/Pause';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import useApi from '../hooks/useApi';
 
 interface MarketEntry {
@@ -15,14 +18,18 @@ export default function TickerTape() {
     5_000,
   );
 
+  const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+  const [paused, setPaused] = useState(false);
+
   if (!entries || entries.length === 0) return null;
 
-  // Duplicate entries for seamless loop
   const items = [...entries, ...entries];
   const duration = entries.length * 1.5;
+  const animated = !prefersReducedMotion && !paused;
 
   return (
     <Box
+      aria-label="Live market ticker"
       sx={{
         overflow: 'hidden',
         bgcolor: '#060e1a',
@@ -39,7 +46,7 @@ export default function TickerTape() {
           zIndex: 1,
         },
         '&::before': { left: 0, background: 'linear-gradient(to right, #060e1a, transparent)' },
-        '&::after': { right: 0, background: 'linear-gradient(to left, #060e1a, transparent)' },
+        '&::after': { right: 32, width: 32, background: 'linear-gradient(to left, #060e1a, transparent)' },
       }}
     >
       <Box
@@ -47,7 +54,7 @@ export default function TickerTape() {
           display: 'flex',
           gap: 4,
           whiteSpace: 'nowrap',
-          animation: `ticker-scroll ${duration}s linear infinite`,
+          animation: animated ? `ticker-scroll ${duration}s linear infinite` : 'none',
           '@keyframes ticker-scroll': {
             '0%': { transform: 'translateX(0)' },
             '100%': { transform: 'translateX(-50%)' },
@@ -70,6 +77,27 @@ export default function TickerTape() {
           </Box>
         ))}
       </Box>
+
+      <IconButton
+        size="small"
+        onClick={() => setPaused((p) => !p)}
+        aria-label={paused ? 'Resume ticker' : 'Pause ticker'}
+        sx={{
+          position: 'absolute',
+          right: 4,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          zIndex: 2,
+          color: 'text.disabled',
+          p: 0.5,
+          '&:hover': { color: 'text.secondary' },
+        }}
+      >
+        {paused
+          ? <PlayArrowIcon sx={{ fontSize: 16 }} />
+          : <PauseIcon sx={{ fontSize: 16 }} />
+        }
+      </IconButton>
     </Box>
   );
 }

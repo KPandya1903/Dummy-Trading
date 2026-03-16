@@ -3,10 +3,10 @@ import {
   Box,
   Typography,
   Paper,
-  CircularProgress,
   Button,
   Link,
 } from '@mui/material';
+import PageLoader from './ui/PageLoader';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import apiClient from '../apiClient';
 
@@ -63,16 +63,7 @@ export default function GeminiInsightPanel({
     );
   }
 
-  if (loading) {
-    return (
-      <Box textAlign="center" py={3}>
-        <CircularProgress size={24} />
-        <Typography variant="caption" display="block" color="text.secondary" mt={1}>
-          Generating AI analysis...
-        </Typography>
-      </Box>
-    );
-  }
+  if (loading) return <PageLoader />;
 
   if (error) {
     return (

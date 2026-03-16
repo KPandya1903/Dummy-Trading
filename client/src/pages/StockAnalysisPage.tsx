@@ -4,7 +4,6 @@ import {
   Typography,
   Box,
   Paper,
-  CircularProgress,
   Alert,
   ToggleButtonGroup,
   ToggleButton,
@@ -14,6 +13,8 @@ import {
   Grid,
   FormControlLabel,
   Checkbox,
+  Breadcrumbs,
+  Link as MuiLink,
 } from '@mui/material';
 import {
   ComposedChart,
@@ -30,6 +31,7 @@ import {
 } from 'recharts';
 import useApi from '../hooks/useApi';
 import GeminiInsightPanel from '../components/GeminiInsightPanel';
+import PageLoader from '../components/ui/PageLoader';
 import {
   CHART_COLORS,
   CHART_TOOLTIP_STYLE,
@@ -114,13 +116,7 @@ export default function StockAnalysisPage() {
     );
   };
 
-  if (loading && !data) {
-    return (
-      <Box textAlign="center" mt={8}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  if (loading && !data) return <PageLoader />;
 
   if (error) {
     return <Alert severity="error">{error}</Alert>;
@@ -166,9 +162,15 @@ export default function StockAnalysisPage() {
 
   return (
     <>
-      <Button component={RouterLink} to={`/stocks/${ticker}`} sx={{ mb: 1 }}>
-        &larr; Back to {ticker}
-      </Button>
+      <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
+        <MuiLink component={RouterLink} to="/market" color="inherit" underline="hover">
+          Market
+        </MuiLink>
+        <MuiLink component={RouterLink} to={`/stocks/${ticker}`} color="inherit" underline="hover">
+          {ticker}
+        </MuiLink>
+        <Typography color="text.primary">Technical Analysis</Typography>
+      </Breadcrumbs>
 
       <Typography variant="h4" gutterBottom fontWeight={700}>
         Technical Analysis — {data.ticker}

@@ -20,6 +20,7 @@ import {
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import useApi from '../hooks/useApi';
+import PageLoader from '../components/ui/PageLoader';
 
 interface GroupDetail {
   id: number;
@@ -62,13 +63,7 @@ export default function GroupDetailPage() {
     `/groups/${id}/leaderboard`,
   );
 
-  if (loading) {
-    return (
-      <Box textAlign="center" mt={8}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  if (loading) return <PageLoader />;
 
   if (error) {
     return <Alert severity="error">{error}</Alert>;

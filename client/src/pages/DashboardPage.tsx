@@ -4,7 +4,6 @@ import {
   Typography,
   Box,
   Alert,
-  CircularProgress,
   Paper,
   Grid,
   Table,
@@ -16,20 +15,19 @@ import {
   Chip,
   Button,
   Divider,
-  Tooltip,
   Stack,
-  Collapse,
-  IconButton,
   Fade,
 } from '@mui/material';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import useApi from '../hooks/useApi';
 import DashboardPerformanceChart from '../components/DashboardPerformanceChart';
 import AnimatedNumber from '../components/AnimatedNumber';
 import MarketRegimePanel from '../components/MarketRegimePanel';
+import PageLoader from '../components/ui/PageLoader';
+import CollapsiblePanel from '../components/ui/CollapsiblePanel';
+import StatRow from '../components/ui/StatRow';
+import SectionHeader from '../components/ui/SectionHeader';
 
 interface DashboardData {
   totalValue: number;
@@ -87,53 +85,6 @@ const panelSx = {
   height: '100%',
 };
 
-const sectionHeaderSx = {
-  fontWeight: 700,
-  fontSize: '0.75rem',
-  letterSpacing: '0.1em',
-  textTransform: 'uppercase' as const,
-  color: '#7a8ba5',
-  mb: 2.5,
-};
-
-function CollapsibleSection({
-  title,
-  expanded,
-  onToggle,
-  children,
-}: {
-  title: string;
-  expanded: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <Paper variant="outlined" sx={{ ...panelSx, height: 'auto' }}>
-      <Box
-        display="flex"
-        alignItems="center"
-        justifyContent="space-between"
-        onClick={onToggle}
-        sx={{ cursor: 'pointer', userSelect: 'none' }}
-      >
-        <Typography sx={{ ...sectionHeaderSx, mb: 0 }}>{title}</Typography>
-        <IconButton size="small">
-          <ExpandMoreIcon
-            sx={{
-              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.3s ease',
-              color: 'text.secondary',
-            }}
-          />
-        </IconButton>
-      </Box>
-      <Collapse in={expanded} timeout={350}>
-        <Box sx={{ mt: 2 }}>{children}</Box>
-      </Collapse>
-    </Paper>
-  );
-}
-
 export default function DashboardPage() {
   const { data, loading, error } = useApi<DashboardData>('/dashboard');
   const navigate = useNavigate();
@@ -147,13 +98,7 @@ export default function DashboardPage() {
     setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  if (loading) {
-    return (
-      <Box textAlign="center" mt={8}>
-        <CircularProgress />
-      </Box>
-    );
-  }
+  if (loading) return <PageLoader />;
 
   if (error) {
     return <Alert severity="error">{error}</Alert>;
@@ -165,11 +110,11 @@ export default function DashboardPage() {
 
   return (
     <Fade in timeout={400}>
-    <Grid container spacing={3.5}>
+    <Grid container spacing={4}>
       {/* ── OVERVIEW Panel ──────────────────────────────── */}
       <Grid item xs={12} md={5}>
         <Paper variant="outlined" sx={panelSx}>
-          <Typography sx={sectionHeaderSx}>Overview</Typography>
+          <SectionHeader>Overview</SectionHeader>
 
           <Typography variant="caption" color="text.secondary">
             ACCOUNT VALUE
@@ -182,7 +127,6 @@ export default function DashboardPage() {
             sx={{ mb: 0.5 }}
           />
 
-          {/* Today's Change */}
           <Box display="flex" alignItems="baseline" gap={1} mb={2}>
             <Typography
               variant="h6"
@@ -201,16 +145,11 @@ export default function DashboardPage() {
 
           <Divider sx={{ borderColor: 'rgba(201,168,76,0.1)', mb: 2 }} />
 
-          {/* Stats rows */}
           <StatRow
             label="ANNUAL RETURN"
             value={`${data.totalReturnPct >= 0 ? '+' : ''}${data.totalReturnPct}%`}
-            color={data.totalReturnPct >= 0 ? 'success.main' : 'error.main'}
+            valueColor={data.totalReturnPct >= 0 ? 'success.main' : 'error.main'}
             tooltip="Return since account creation"
-          />
-          <StatRow
-            label="BUYING POWER"
-            value={`$${fmt(data.cashRemaining)}`}
           />
           <StatRow label="CASH" value={`$${fmt(data.cashRemaining)}`} />
         </Paper>
@@ -219,7 +158,7 @@ export default function DashboardPage() {
       {/* ── PERFORMANCE Panel ───────────────────────────── */}
       <Grid item xs={12} md={7}>
         <Paper variant="outlined" sx={panelSx}>
-          <Typography sx={sectionHeaderSx}>Performance</Typography>
+          <SectionHeader>Performance</SectionHeader>
           <DashboardPerformanceChart
             portfolioIds={portfolioIds}
             totalStartingCash={data.totalStartingCash}
@@ -234,22 +173,13 @@ export default function DashboardPage() {
 
       {/* ── GAME INFO Panel ─────────────────────────────── */}
       <Grid item xs={12} md={5}>
-        <CollapsibleSection
+        <CollapsiblePanel
           title="Game Info"
           expanded={expandedSections.gameInfo}
           onToggle={() => toggleSection('gameInfo')}
         >
-          <Box display="flex" alignItems="baseline" gap={1} mb={0.5}>
-            <Typography variant="caption" color="text.secondary">
-              CURRENT RANK
-            </Typography>
-          </Box>
           <Box display="flex" alignItems="center" gap={1} mb={2}>
-            <Typography
-              variant="h4"
-              fontWeight={700}
-              color="primary.main"
-            >
+            <Typography variant="h4" fontWeight={700} color="primary.main">
               {data.rank.toLocaleString()}
             </Typography>
             <TrendingUpIcon color="success" fontSize="small" />
@@ -268,9 +198,7 @@ export default function DashboardPage() {
                 TOP PLAYER
               </Typography>
               <Box display="flex" alignItems="center" gap={1}>
-                <EmojiEventsIcon
-                  sx={{ color: 'warning.main', fontSize: 20 }}
-                />
+                <EmojiEventsIcon sx={{ color: 'warning.main', fontSize: 20 }} />
                 <Typography variant="body1" fontWeight={600}>
                   {data.topPlayer.email.split('@')[0]}
                 </Typography>
@@ -290,12 +218,12 @@ export default function DashboardPage() {
           >
             FULL LEADERBOARD
           </Button>
-        </CollapsibleSection>
+        </CollapsiblePanel>
       </Grid>
 
       {/* ── TOP MOVERS Panel ────────────────────────────── */}
       <Grid item xs={12} md={7}>
-        <CollapsibleSection
+        <CollapsiblePanel
           title="Top Movers"
           expanded={expandedSections.topMovers}
           onToggle={() => toggleSection('topMovers')}
@@ -376,12 +304,12 @@ export default function DashboardPage() {
               )}
             </Grid>
           </Grid>
-        </CollapsibleSection>
+        </CollapsiblePanel>
       </Grid>
 
       {/* ── HOLDINGS section ────────────────────────────── */}
       <Grid item xs={12}>
-        <CollapsibleSection
+        <CollapsiblePanel
           title="Holdings"
           expanded={expandedSections.holdings}
           onToggle={() => toggleSection('holdings')}
@@ -392,10 +320,7 @@ export default function DashboardPage() {
                 width: 8,
                 height: 8,
                 borderRadius: '50%',
-                bgcolor:
-                  data.marketStatus === 'REGULAR'
-                    ? 'success.main'
-                    : 'error.main',
+                bgcolor: data.marketStatus === 'REGULAR' ? 'success.main' : 'error.main',
               }}
             />
             <Typography variant="caption" color="text.secondary">
@@ -445,9 +370,7 @@ export default function DashboardPage() {
                     <TableCell align="right">
                       <Typography
                         variant="body2"
-                        color={
-                          h.todayChange >= 0 ? 'success.main' : 'error.main'
-                        }
+                        color={h.todayChange >= 0 ? 'success.main' : 'error.main'}
                       >
                         {h.todayChange >= 0 ? '+' : ''}
                         {fmt(h.todayChange)} ({h.todayChangePct >= 0 ? '+' : ''}
@@ -460,9 +383,7 @@ export default function DashboardPage() {
                     <TableCell align="right">
                       <Typography
                         variant="body2"
-                        color={
-                          h.totalGainLoss >= 0 ? 'success.main' : 'error.main'
-                        }
+                        color={h.totalGainLoss >= 0 ? 'success.main' : 'error.main'}
                       >
                         {h.totalGainLoss >= 0 ? '+' : ''}$
                         {fmt(Math.abs(h.totalGainLoss))} (
@@ -471,18 +392,12 @@ export default function DashboardPage() {
                       </Typography>
                     </TableCell>
                     <TableCell align="center">
-                      <Stack
-                        direction="row"
-                        spacing={0.5}
-                        justifyContent="center"
-                      >
+                      <Stack direction="row" spacing={0.5} justifyContent="center">
                         <Button
                           size="small"
                           variant="outlined"
                           color="success"
-                          onClick={() =>
-                            navigate(`/trade?ticker=${h.ticker}`)
-                          }
+                          onClick={() => navigate(`/trade?ticker=${h.ticker}`)}
                         >
                           Buy
                         </Button>
@@ -490,11 +405,7 @@ export default function DashboardPage() {
                           size="small"
                           variant="outlined"
                           color="error"
-                          onClick={() =>
-                            navigate(
-                              `/trade?ticker=${h.ticker}&side=SELL`,
-                            )
-                          }
+                          onClick={() => navigate(`/trade?ticker=${h.ticker}&side=SELL`)}
                         >
                           Sell
                         </Button>
@@ -506,11 +417,7 @@ export default function DashboardPage() {
                 {data.holdings.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={9} align="center">
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        py={3}
-                      >
+                      <Typography variant="body2" color="text.secondary" py={3}>
                         You have no stock holdings yet
                       </Typography>
                     </TableCell>
@@ -520,7 +427,6 @@ export default function DashboardPage() {
             </Table>
           </TableContainer>
 
-          {/* Trade History button */}
           <Box display="flex" justifyContent="flex-end" mt={2}>
             <Button
               variant="contained"
@@ -534,47 +440,9 @@ export default function DashboardPage() {
               TRADE HISTORY
             </Button>
           </Box>
-        </CollapsibleSection>
+        </CollapsiblePanel>
       </Grid>
     </Grid>
     </Fade>
-  );
-}
-
-// ── Stat row helper ─────────────────────────────────────
-function StatRow({
-  label,
-  value,
-  color,
-  tooltip: tip,
-}: {
-  label: string;
-  value: string;
-  color?: string;
-  tooltip?: string;
-}) {
-  return (
-    <Box
-      display="flex"
-      justifyContent="space-between"
-      alignItems="center"
-      py={1}
-    >
-      <Box display="flex" alignItems="center" gap={0.5}>
-        <Typography variant="caption" color="text.secondary">
-          {label}
-        </Typography>
-        {tip && (
-          <Tooltip title={tip} arrow>
-            <InfoOutlinedIcon
-              sx={{ fontSize: 14, color: 'text.disabled', cursor: 'help' }}
-            />
-          </Tooltip>
-        )}
-      </Box>
-      <Typography variant="body1" fontWeight={600} color={color}>
-        {value}
-      </Typography>
-    </Box>
   );
 }
