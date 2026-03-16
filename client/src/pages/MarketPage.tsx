@@ -31,11 +31,11 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import TableChartIcon from '@mui/icons-material/TableChart';
-import GridViewIcon from '@mui/icons-material/GridView';
+import CandlestickChartIcon from '@mui/icons-material/CandlestickChart';
 import SearchIcon from '@mui/icons-material/Search';
 import { Link as RouterLink } from 'react-router-dom';
 import useApi from '../hooks/useApi';
-import MarketHeatmap from '../components/MarketHeatmap';
+import SP500CandlestickChart from '../components/SP500CandlestickChart';
 import SP500IndexChart from '../components/SP500IndexChart';
 import MarketClassifierTiles from '../components/MarketClassifierTiles';
 import MarketRegimePanel from '../components/MarketRegimePanel';
@@ -79,7 +79,7 @@ type SortField = 'ticker' | 'name' | 'price' | 'changePct' | 'marketCap' | 'volu
 export default function MarketPage() {
   const navigate = useNavigate();
   const isLoggedIn = !!localStorage.getItem('token');
-  const [view, setView] = useState<'table' | 'heatmap'>('table');
+  const [view, setView] = useState<'table' | 'candle'>('table');
 
   // Pagination, sort, filter state
   const [page, setPage] = useState(0); // 0-indexed for MUI
@@ -117,12 +117,6 @@ export default function MarketPage() {
     1_000,
   );
 
-  // Heatmap uses /market/top endpoint
-  const { data: heatmapEntries } = useApi<MarketEntry[]>(
-    view === 'heatmap' ? '/market/top' : null,
-    { by: 'marketCap', limit: 30 },
-    1_000,
-  );
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -166,8 +160,8 @@ export default function MarketPage() {
           <ToggleButton value="table">
             <TableChartIcon fontSize="small" sx={{ mr: 0.5 }} /> Table
           </ToggleButton>
-          <ToggleButton value="heatmap">
-            <GridViewIcon fontSize="small" sx={{ mr: 0.5 }} /> Heatmap
+              <ToggleButton value="candle">
+            <CandlestickChartIcon fontSize="small" sx={{ mr: 0.5 }} /> Candle
           </ToggleButton>
         </ToggleButtonGroup>
       </Box>
@@ -206,12 +200,8 @@ export default function MarketPage() {
         </Alert>
       )}
 
-      {view === 'heatmap' ? (
-        heatmapEntries ? (
-          <MarketHeatmap entries={heatmapEntries} />
-        ) : (
-          <PageLoader />
-        )
+      {view === 'candle' ? (
+        <SP500CandlestickChart />
       ) : view === 'table' ? (
         <>
           {/* Filters */}

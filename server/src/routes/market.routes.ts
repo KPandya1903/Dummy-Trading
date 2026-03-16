@@ -145,6 +145,10 @@ router.get('/sp500-chart', async (req: Request, res: Response) => {
       .map((h: any) => ({
         date: new Date(h.date).toISOString().split('T')[0],
         value: Math.round((h.close ?? 0) * 100) / 100,
+        open:  Math.round((h.open  ?? 0) * 100) / 100,
+        high:  Math.round((h.high  ?? 0) * 100) / 100,
+        low:   Math.round((h.low   ?? 0) * 100) / 100,
+        close: Math.round((h.close ?? 0) * 100) / 100,
       }))
       .sort((a: any, b: any) => a.date.localeCompare(b.date));
 
