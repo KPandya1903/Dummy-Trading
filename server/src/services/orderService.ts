@@ -33,7 +33,7 @@ export async function checkPendingOrders(): Promise<void> {
     const currentPrice = prices[order.ticker];
     if (!currentPrice) continue;
 
-    if (shouldFillOrder(order.orderType, order.side, currentPrice, order.targetPrice)) {
+    if (shouldFillOrder(order.orderType as 'LIMIT' | 'STOP', order.side as 'BUY' | 'SELL', currentPrice, order.targetPrice)) {
       await prisma.$transaction([
         prisma.trade.create({
           data: {
