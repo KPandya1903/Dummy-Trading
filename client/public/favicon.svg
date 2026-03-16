@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <rect width="32" height="32" rx="8" fill="#0a0a0a"/>
+  <!-- Candlestick bars -->
+  <rect x="6" y="20" width="4" height="7" rx="1" fill="#00C805"/>
+  <rect x="7.5" y="17" width="1" height="3" fill="#00C805"/>
+  <rect x="7.5" y="27" width="1" height="2" fill="#00C805"/>
+
+  <rect x="14" y="13" width="4" height="10" rx="1" fill="#00C805"/>
+  <rect x="15.5" y="10" width="1" height="3" fill="#00C805"/>
+  <rect x="15.5" y="23" width="1" height="2" fill="#00C805"/>
+
+  <rect x="22" y="6" width="4" height="9" rx="1" fill="#00C805"/>
+  <rect x="23.5" y="3" width="1" height="3" fill="#00C805"/>
+  <rect x="23.5" y="15" width="1" height="2" fill="#00C805"/>
+
+  <!-- Trend line -->
+  <polyline points="8,18 16,11 24,7" stroke="#00C805" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/>
+</svg>
