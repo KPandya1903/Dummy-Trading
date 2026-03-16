@@ -40,8 +40,10 @@ import {
   AccountBalance,
 } from '@mui/icons-material';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Suspense } from 'react';
 import TickerTape from './TickerTape';
 import AlertBadge from './AlertBadge';
+import PageLoader from './ui/PageLoader';
 
 const EXPLORE_PATHS = ['/analysis', '/prediction', '/compare', '/screener', '/news', '/research'];
 const MORE_PATHS = ['/watchlist', '/groups', '/leaderboard', '/badges'];
@@ -407,7 +409,9 @@ export default function Layout() {
               '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
             }}
           >
-            <Outlet />
+            <Suspense fallback={<PageLoader />}>
+              <Outlet />
+            </Suspense>
           </Box>
         </Box>
       </Container>

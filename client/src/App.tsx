@@ -34,9 +34,8 @@ function RequireAuth() {
 
 export default function App() {
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        <Route element={<Layout />}>
+    <Routes>
+      <Route element={<Layout />}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/market" element={<MarketPage />} />
@@ -64,6 +63,5 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
-    </Suspense>
   );
 }
