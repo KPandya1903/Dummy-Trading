@@ -305,7 +305,7 @@ export default function TradeForm({
               }
             }}
             loading={searchLoading}
-            componentsProps={{ listbox: { 'aria-label': 'Stock search results' } }}
+
             renderOption={(props, option) => (
               <Box component="li" {...props} key={option.ticker}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', gap: 2 }}>
