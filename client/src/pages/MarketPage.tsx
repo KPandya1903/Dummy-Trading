@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Typography,
@@ -77,7 +77,6 @@ function fmtVolume(n: number | null): string {
 type SortField = 'ticker' | 'name' | 'price' | 'changePct' | 'marketCap' | 'volume' | 'sector';
 
 export default function MarketPage() {
-  const navigate = useNavigate();
   const isLoggedIn = !!localStorage.getItem('token');
   const [view, setView] = useState<'table' | 'candle'>('table');
 
@@ -249,68 +248,17 @@ export default function MarketPage() {
               </TableHead>
               <TableBody>
                 {entries.map((e) => (
-                  <TableRow key={e.ticker} hover>
-                    <TableCell>
-                      <Link
-                        component={RouterLink}
-                        to={`/stocks/${e.ticker}`}
-                        underline="hover"
-                        fontWeight="bold"
-                      >
-                        {e.ticker}
-                      </Link>
-                    </TableCell>
-                    <TableCell>{e.name}</TableCell>
-                    <TableCell>
-                      <Chip label={e.sector} size="small" variant="outlined" />
-                    </TableCell>
-                    <TableCell align="right">${fmt(e.price)}</TableCell>
-                    <TableCell align="right">
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'flex-end',
-                          gap: 0.5,
-                        }}
-                      >
-                        {e.changePct > 0 ? (
-                          <TrendingUpIcon fontSize="small" color="success" />
-                        ) : e.changePct < 0 ? (
-                          <TrendingDownIcon fontSize="small" color="error" />
-                        ) : null}
-                        <Chip
-                          label={`${e.changePct > 0 ? '+' : ''}${e.changePct.toFixed(2)}%`}
-                          size="small"
-                          color={
-                            e.changePct > 0
-                              ? 'success'
-                              : e.changePct < 0
-                                ? 'error'
-                                : 'default'
-                          }
-                          variant="outlined"
-                        />
-                      </Box>
-                    </TableCell>
-                    <TableCell align="right">
-                      {e.marketCap != null ? `$${fmt(e.marketCap)}B` : '—'}
-                    </TableCell>
-                    <TableCell align="right">{fmtVolume(e.volume)}</TableCell>
-                    {isLoggedIn && (
-                      <TableCell align="center">
-                        <Tooltip title={`Trade ${e.ticker}`}>
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            onClick={() => navigate(`/trade?ticker=${e.ticker}`)}
-                          >
-                            <ShoppingCartIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </TableCell>
-                    )}
-                  </TableRow>
+                  <StockRow
+                    key={e.ticker}
+                    ticker={e.ticker}
+                    name={e.name}
+                    sector={e.sector}
+                    price={e.price}
+                    changePct={e.changePct}
+                    marketCap={e.marketCap}
+                    volume={e.volume}
+                    isLoggedIn={isLoggedIn}
+                  />
                 ))}
 
                 {entries.length === 0 && (
@@ -345,6 +293,51 @@ export default function MarketPage() {
     </>
   );
 }
+
+// ── Stock table row — memoized so only rows with changed prices re-render ──
+const StockRow = memo(function StockRow({
+  ticker, name, sector, price, changePct, marketCap, volume, isLoggedIn,
+}: {
+  ticker: string; name: string; sector: string;
+  price: number; changePct: number; marketCap: number | null; volume: number | null;
+  isLoggedIn: boolean;
+}) {
+  const navigate = useNavigate();
+  return (
+    <TableRow hover>
+      <TableCell>
+        <Link component={RouterLink} to={`/stocks/${ticker}`} underline="hover" fontWeight="bold">
+          {ticker}
+        </Link>
+      </TableCell>
+      <TableCell>{name}</TableCell>
+      <TableCell><Chip label={sector} size="small" variant="outlined" /></TableCell>
+      <TableCell align="right">${fmt(price)}</TableCell>
+      <TableCell align="right">
+        <Box display="flex" alignItems="center" justifyContent="flex-end" gap={0.5}>
+          {changePct > 0 ? <TrendingUpIcon fontSize="small" color="success" /> : changePct < 0 ? <TrendingDownIcon fontSize="small" color="error" /> : null}
+          <Chip
+            label={`${changePct > 0 ? '+' : ''}${changePct.toFixed(2)}%`}
+            size="small"
+            color={changePct > 0 ? 'success' : changePct < 0 ? 'error' : 'default'}
+            variant="outlined"
+          />
+        </Box>
+      </TableCell>
+      <TableCell align="right">{marketCap != null ? `$${fmt(marketCap)}B` : '—'}</TableCell>
+      <TableCell align="right">{fmtVolume(volume)}</TableCell>
+      {isLoggedIn && (
+        <TableCell align="center">
+          <Tooltip title={`Trade ${ticker}`}>
+            <IconButton size="small" color="primary" onClick={() => navigate(`/trade?ticker=${ticker}`)}>
+              <ShoppingCartIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </TableCell>
+      )}
+    </TableRow>
+  );
+});
 
 // ── Sortable table header cell ──────────────────────────────
 function SortableCell({
