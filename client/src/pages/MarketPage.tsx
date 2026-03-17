@@ -1,4 +1,4 @@
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Typography,
@@ -60,10 +60,7 @@ interface MarketResponse {
 }
 
 function fmt(n: number): string {
-  return n.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function fmtVolume(n: number | null): string {
@@ -76,12 +73,68 @@ function fmtVolume(n: number | null): string {
 
 type SortField = 'ticker' | 'name' | 'price' | 'changePct' | 'marketCap' | 'volume' | 'sector';
 
+// ── MarketPage — owns only the view toggle and page layout ──────────────────
+// The stock table has its own polling state so live price updates never
+// cause the S&P chart, classifier tiles, or regime panel to re-render.
 export default function MarketPage() {
-  const isLoggedIn = !!localStorage.getItem('token');
   const [view, setView] = useState<'table' | 'candle'>('table');
 
-  // Pagination, sort, filter state
-  const [page, setPage] = useState(0); // 0-indexed for MUI
+  return (
+    <>
+      <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+        <Typography variant="h4">Market Overview</Typography>
+        <ToggleButtonGroup
+          value={view}
+          exclusive
+          onChange={(_e, v) => { if (v) setView(v); }}
+          size="small"
+        >
+          <ToggleButton value="table">
+            <TableChartIcon fontSize="small" sx={{ mr: 0.5 }} /> Table
+          </ToggleButton>
+          <ToggleButton value="candle">
+            <CandlestickChartIcon fontSize="small" sx={{ mr: 0.5 }} /> Candle
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
+
+      {/* S&P 500 Chart — line in table mode, candlestick in candle mode */}
+      <Paper
+        variant="outlined"
+        sx={{
+          p: 4,
+          mb: 3,
+          background: 'linear-gradient(135deg, #111111 0%, #1a1a1a 100%)',
+          border: '1px solid rgba(0,200,5,0.1)',
+        }}
+      >
+        {view === 'candle' ? <SP500CandlestickChart /> : <SP500IndexChart />}
+      </Paper>
+
+      <MarketRegimePanel />
+
+      <Box mb={3}>
+        <Typography
+          variant="caption"
+          fontWeight={700}
+          sx={{ textTransform: 'uppercase', letterSpacing: '0.1em', color: '#7a8ba5', mb: 1.5, display: 'block' }}
+        >
+          Market Classifiers
+        </Typography>
+        <MarketClassifierTiles />
+      </Box>
+
+      {view === 'table' && <StockTable />}
+    </>
+  );
+}
+
+// ── StockTable — owns all polling, sort, filter, and pagination state ───────
+// Re-renders only this component on each 5s poll, leaving everything above untouched.
+function StockTable() {
+  const isLoggedIn = !!localStorage.getItem('token');
+
+  const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [sortField, setSortField] = useState<SortField>('marketCap');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -89,20 +142,15 @@ export default function MarketPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  // Debounce search input
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(0);
-    }, 300);
+    const timer = setTimeout(() => { setDebouncedSearch(search); setPage(0); }, 300);
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Reset page when filters change
   useEffect(() => { setPage(0); }, [sector, sortField, sortOrder]);
 
   const apiParams: Record<string, unknown> = {
-    page: page + 1, // API is 1-indexed
+    page: page + 1,
     limit: rowsPerPage,
     sort: sortField,
     order: sortOrder,
@@ -110,12 +158,7 @@ export default function MarketPage() {
   if (sector) apiParams.sector = sector;
   if (debouncedSearch) apiParams.q = debouncedSearch;
 
-  const { data: response, loading, error } = useApi<MarketResponse>(
-    '/market',
-    apiParams,
-    5_000,
-  );
-
+  const { data: response, loading, error } = useApi<MarketResponse>('/market', apiParams, 5_000);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -135,10 +178,6 @@ export default function MarketPage() {
 
   return (
     <>
-      <Typography variant="h4" gutterBottom>
-        Market Overview
-      </Typography>
-
       <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
         <Typography variant="body2" color="text.secondary">
           {marketState === 'REGULAR'
@@ -150,151 +189,97 @@ export default function MarketPage() {
                 : 'Market is closed — showing last closing prices.'}
           {pagination && ` Showing ${pagination.total} stocks.`}
         </Typography>
-        <ToggleButtonGroup
-          value={view}
-          exclusive
-          onChange={(_e, v) => { if (v) setView(v); }}
+      </Box>
+
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+      <Box display="flex" gap={2} mb={2} flexWrap="wrap">
+        <TextField
           size="small"
-        >
-          <ToggleButton value="table">
-            <TableChartIcon fontSize="small" sx={{ mr: 0.5 }} /> Table
-          </ToggleButton>
-              <ToggleButton value="candle">
-            <CandlestickChartIcon fontSize="small" sx={{ mr: 0.5 }} /> Candle
-          </ToggleButton>
-        </ToggleButtonGroup>
+          placeholder="Search ticker or company..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          sx={{ minWidth: 240 }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" />
+              </InputAdornment>
+            ),
+          }}
+        />
+        <FormControl size="small" sx={{ minWidth: 200 }}>
+          <InputLabel>Sector</InputLabel>
+          <Select
+            value={sector}
+            label="Sector"
+            onChange={(e: SelectChangeEvent) => setSector(e.target.value)}
+          >
+            <MenuItem value="">All Sectors</MenuItem>
+            {sectors.map((s) => (
+              <MenuItem key={s} value={s}>{s}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
       </Box>
 
-      {/* S&P 500 Chart — line in table mode, candlestick in candle mode */}
-      <Paper
-        variant="outlined"
-        sx={{
-          p: 4,
-          mb: 3,
-          background: 'linear-gradient(135deg, #111111 0%, #1a1a1a 100%)',
-          border: '1px solid rgba(0,200,5,0.1)',
-        }}
-      >
-        {view === 'candle' ? <SP500CandlestickChart /> : <SP500IndexChart />}
-      </Paper>
+      <TableContainer component={Paper} variant="outlined">
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <SortableCell field="ticker" label="Ticker" current={sortField} order={sortOrder} onSort={handleSort} />
+              <SortableCell field="name" label="Company" current={sortField} order={sortOrder} onSort={handleSort} />
+              <SortableCell field="sector" label="Sector" current={sortField} order={sortOrder} onSort={handleSort} />
+              <SortableCell field="price" label="Price" current={sortField} order={sortOrder} onSort={handleSort} align="right" />
+              <SortableCell field="changePct" label="Change %" current={sortField} order={sortOrder} onSort={handleSort} align="right" />
+              <SortableCell field="marketCap" label="Mkt Cap" current={sortField} order={sortOrder} onSort={handleSort} align="right" />
+              <SortableCell field="volume" label="Volume" current={sortField} order={sortOrder} onSort={handleSort} align="right" />
+              {isLoggedIn && <TableCell align="center">Trade</TableCell>}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {entries.map((e) => (
+              <StockRow
+                key={e.ticker}
+                ticker={e.ticker}
+                name={e.name}
+                sector={e.sector}
+                price={e.price}
+                changePct={e.changePct}
+                marketCap={e.marketCap}
+                volume={e.volume}
+                isLoggedIn={isLoggedIn}
+              />
+            ))}
+            {entries.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={isLoggedIn ? 8 : 7} align="center">
+                  {debouncedSearch || sector
+                    ? 'No stocks match your filters.'
+                    : 'No market data available. Try again later.'}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-      {/* Market Regime */}
-      <MarketRegimePanel />
-
-      {/* Market Classifier Tiles */}
-      <Box mb={3}>
-        <Typography
-          variant="caption"
-          fontWeight={700}
-          sx={{ textTransform: 'uppercase', letterSpacing: '0.1em', color: '#7a8ba5', mb: 1.5, display: 'block' }}
-        >
-          Market Classifiers
-        </Typography>
-        <MarketClassifierTiles />
-      </Box>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
+      {pagination && (
+        <TablePagination
+          component="div"
+          count={pagination.total}
+          page={page}
+          onPageChange={(_e, newPage) => setPage(newPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+          rowsPerPageOptions={[25, 50, 100]}
+        />
       )}
-
-      {view === 'table' ? (
-        <>
-          {/* Filters */}
-          <Box display="flex" gap={2} mb={2} flexWrap="wrap">
-            <TextField
-              size="small"
-              placeholder="Search ticker or company..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              sx={{ minWidth: 240 }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>Sector</InputLabel>
-              <Select
-                value={sector}
-                label="Sector"
-                onChange={(e: SelectChangeEvent) => setSector(e.target.value)}
-              >
-                <MenuItem value="">All Sectors</MenuItem>
-                {sectors.map((s) => (
-                  <MenuItem key={s} value={s}>{s}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
-
-          <TableContainer component={Paper} variant="outlined">
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <SortableCell field="ticker" label="Ticker" current={sortField} order={sortOrder} onSort={handleSort} />
-                  <SortableCell field="name" label="Company" current={sortField} order={sortOrder} onSort={handleSort} />
-                  <SortableCell field="sector" label="Sector" current={sortField} order={sortOrder} onSort={handleSort} />
-                  <SortableCell field="price" label="Price" current={sortField} order={sortOrder} onSort={handleSort} align="right" />
-                  <SortableCell field="changePct" label="Change %" current={sortField} order={sortOrder} onSort={handleSort} align="right" />
-                  <SortableCell field="marketCap" label="Mkt Cap" current={sortField} order={sortOrder} onSort={handleSort} align="right" />
-                  <SortableCell field="volume" label="Volume" current={sortField} order={sortOrder} onSort={handleSort} align="right" />
-                  {isLoggedIn && <TableCell align="center">Trade</TableCell>}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {entries.map((e) => (
-                  <StockRow
-                    key={e.ticker}
-                    ticker={e.ticker}
-                    name={e.name}
-                    sector={e.sector}
-                    price={e.price}
-                    changePct={e.changePct}
-                    marketCap={e.marketCap}
-                    volume={e.volume}
-                    isLoggedIn={isLoggedIn}
-                  />
-                ))}
-
-                {entries.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={isLoggedIn ? 8 : 7} align="center">
-                      {debouncedSearch || sector
-                        ? 'No stocks match your filters.'
-                        : 'No market data available. Try again later.'}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          {pagination && (
-            <TablePagination
-              component="div"
-              count={pagination.total}
-              page={page}
-              onPageChange={(_e, newPage) => setPage(newPage)}
-              rowsPerPage={rowsPerPage}
-              onRowsPerPageChange={(e) => {
-                setRowsPerPage(parseInt(e.target.value, 10));
-                setPage(0);
-              }}
-              rowsPerPageOptions={[25, 50, 100]}
-            />
-          )}
-        </>
-      ) : null}
     </>
   );
 }
 
-// ── Stock table row — memoized so only rows with changed prices re-render ──
+// ── StockRow — memoized; flashes green/red when price changes ───────────────
 const StockRow = memo(function StockRow({
   ticker, name, sector, price, changePct, marketCap, volume, isLoggedIn,
 }: {
@@ -303,8 +288,29 @@ const StockRow = memo(function StockRow({
   isLoggedIn: boolean;
 }) {
   const navigate = useNavigate();
+  const prevPrice = useRef(price);
+  const [flash, setFlash] = useState<'up' | 'down' | null>(null);
+
+  useEffect(() => {
+    if (prevPrice.current !== price) {
+      setFlash(price > prevPrice.current ? 'up' : 'down');
+      prevPrice.current = price;
+      const t = setTimeout(() => setFlash(null), 600);
+      return () => clearTimeout(t);
+    }
+  }, [price]);
+
   return (
-    <TableRow hover>
+    <TableRow
+      hover
+      sx={{
+        transition: 'background-color 0.4s ease',
+        backgroundColor:
+          flash === 'up' ? 'rgba(0,200,5,0.12)' :
+          flash === 'down' ? 'rgba(255,77,77,0.12)' :
+          undefined,
+      }}
+    >
       <TableCell>
         <Link component={RouterLink} to={`/stocks/${ticker}`} underline="hover" fontWeight="bold">
           {ticker}
@@ -341,19 +347,10 @@ const StockRow = memo(function StockRow({
 
 // ── Sortable table header cell ──────────────────────────────
 function SortableCell({
-  field,
-  label,
-  current,
-  order,
-  onSort,
-  align,
+  field, label, current, order, onSort, align,
 }: {
-  field: SortField;
-  label: string;
-  current: SortField;
-  order: 'asc' | 'desc';
-  onSort: (f: SortField) => void;
-  align?: 'left' | 'right' | 'center';
+  field: SortField; label: string; current: SortField; order: 'asc' | 'desc';
+  onSort: (f: SortField) => void; align?: 'left' | 'right' | 'center';
 }) {
   return (
     <TableCell align={align} sortDirection={current === field ? order : false}>
