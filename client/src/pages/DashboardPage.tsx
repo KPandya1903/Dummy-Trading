@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   Typography,
@@ -21,12 +21,11 @@ import {
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import useApi from '../hooks/useApi';
+import apiClient from '../apiClient';
 import DashboardPerformanceChart from '../components/DashboardPerformanceChart';
-import AnimatedNumber from '../components/AnimatedNumber';
 import MarketRegimePanel from '../components/MarketRegimePanel';
 import PageLoader from '../components/ui/PageLoader';
 import CollapsiblePanel from '../components/ui/CollapsiblePanel';
-import StatRow from '../components/ui/StatRow';
 import SectionHeader from '../components/ui/SectionHeader';
 
 interface DashboardData {
@@ -71,6 +70,13 @@ interface DashboardData {
   }[];
 }
 
+interface HoldingCellRefs {
+  priceEl: HTMLElement;
+  todayChangeEl: HTMLElement;
+  totalValueEl: HTMLElement;
+  totalGainLossEl: HTMLElement;
+}
+
 function fmt(n: number): string {
   return n.toLocaleString(undefined, {
     minimumFractionDigits: 2,
@@ -86,7 +92,8 @@ const panelSx = {
 };
 
 export default function DashboardPage() {
-  const { data, loading, error } = useApi<DashboardData>('/dashboard', undefined, 5_000);
+  // Structural fetch only — no poll interval
+  const { data, loading, error } = useApi<DashboardData>('/dashboard');
   const navigate = useNavigate();
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     gameInfo: false,
@@ -97,6 +104,76 @@ export default function DashboardPage() {
   const toggleSection = (key: string) => {
     setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
   };
+
+  // ── Refs for live-updated overview stats ──
+  const totalValueRef = useRef<HTMLElement>(null);
+  const todaysChangeRef = useRef<HTMLElement>(null);
+  const todaysChangePctRef = useRef<HTMLElement>(null);
+  const annualReturnRef = useRef<HTMLElement>(null);
+  const cashRef = useRef<HTMLElement>(null);
+
+  // ── Refs for holdings table cells ──
+  const holdingRefs = useRef<Map<string, HoldingCellRefs>>(new Map());
+
+  // ── Direct poll — zero React re-renders ──
+  useEffect(() => {
+    if (!data) return;
+    const id = setInterval(async () => {
+      try {
+        const { data: d } = await apiClient.get<DashboardData>('/dashboard');
+
+        // Overview stats
+        if (totalValueRef.current) {
+          totalValueRef.current.textContent = `$${fmt(d.totalValue)}`;
+        }
+        if (todaysChangeRef.current) {
+          todaysChangeRef.current.textContent = `${d.todaysChange >= 0 ? '+' : ''}$${fmt(d.todaysChange)}`;
+          todaysChangeRef.current.style.color = d.todaysChange >= 0 ? '#00C805' : '#ff4d4d';
+        }
+        if (todaysChangePctRef.current) {
+          todaysChangePctRef.current.textContent = `(${d.todaysChangePct >= 0 ? '+' : ''}${d.todaysChangePct}%)`;
+          todaysChangePctRef.current.style.color = d.todaysChangePct >= 0 ? '#00C805' : '#ff4d4d';
+        }
+        if (annualReturnRef.current) {
+          annualReturnRef.current.textContent = `${d.totalReturnPct >= 0 ? '+' : ''}${d.totalReturnPct}%`;
+          annualReturnRef.current.style.color = d.totalReturnPct >= 0 ? '#00C805' : '#ff4d4d';
+        }
+        if (cashRef.current) {
+          cashRef.current.textContent = `$${fmt(d.cashRemaining)}`;
+        }
+
+        // Holdings table
+        for (const h of d.holdings) {
+          const cells = holdingRefs.current.get(h.ticker);
+          if (!cells) continue;
+
+          const prev = Number(cells.priceEl.dataset.price ?? 0);
+          if (prev !== h.currentPrice) {
+            cells.priceEl.textContent = `$${fmt(h.currentPrice)}`;
+            cells.priceEl.dataset.price = String(h.currentPrice);
+            const row = cells.priceEl.closest('tr') as HTMLElement | null;
+            if (row) {
+              row.classList.remove('flash-up', 'flash-down');
+              void row.offsetHeight;
+              row.classList.add(h.currentPrice > prev ? 'flash-up' : 'flash-down');
+              setTimeout(() => row.classList.remove('flash-up', 'flash-down'), 650);
+            }
+          }
+
+          cells.todayChangeEl.textContent =
+            `${h.todayChange >= 0 ? '+' : ''}${fmt(h.todayChange)} (${h.todayChangePct >= 0 ? '+' : ''}${h.todayChangePct.toFixed(2)}%)`;
+          cells.todayChangeEl.style.color = h.todayChange >= 0 ? '#00C805' : '#ff4d4d';
+
+          cells.totalValueEl.textContent = `$${fmt(h.totalValue)}`;
+
+          cells.totalGainLossEl.textContent =
+            `${h.totalGainLoss >= 0 ? '+' : ''}$${fmt(Math.abs(h.totalGainLoss))} (${h.totalGainLossPct >= 0 ? '+' : ''}${h.totalGainLossPct.toFixed(2)}%)`;
+          cells.totalGainLossEl.style.color = h.totalGainLoss >= 0 ? '#00C805' : '#ff4d4d';
+        }
+      } catch { /* ignore poll errors */ }
+    }, 5_000);
+    return () => clearInterval(id);
+  }, [!!data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) return <PageLoader />;
 
@@ -119,22 +196,25 @@ export default function DashboardPage() {
           <Typography variant="caption" color="text.secondary">
             ACCOUNT VALUE
           </Typography>
-          <AnimatedNumber
-            value={data.totalValue}
-            prefix="$"
+          <Typography
+            ref={totalValueRef}
             variant="h3"
             fontWeight={700}
             sx={{ mb: 0.5, fontFamily: '"Playfair Display", serif' }}
-          />
+          >
+            ${fmt(data.totalValue)}
+          </Typography>
 
           <Box display="flex" alignItems="baseline" gap={1} mb={2}>
             <Typography
+              ref={todaysChangeRef}
               variant="h6"
               color={data.todaysChange >= 0 ? 'success.main' : 'error.main'}
             >
               {data.todaysChange >= 0 ? '+' : ''}${fmt(data.todaysChange)}
             </Typography>
             <Typography
+              ref={todaysChangePctRef}
               variant="body2"
               color={data.todaysChangePct >= 0 ? 'success.main' : 'error.main'}
             >
@@ -145,13 +225,23 @@ export default function DashboardPage() {
 
           <Divider sx={{ borderColor: 'rgba(0,200,5,0.1)', mb: 2 }} />
 
-          <StatRow
-            label="ANNUAL RETURN"
-            value={`${data.totalReturnPct >= 0 ? '+' : ''}${data.totalReturnPct}%`}
-            valueColor={data.totalReturnPct >= 0 ? 'success.main' : 'error.main'}
-            tooltip="Return since account creation"
-          />
-          <StatRow label="CASH" value={`$${fmt(data.cashRemaining)}`} />
+          <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+            <Typography variant="caption" color="text.secondary">ANNUAL RETURN</Typography>
+            <Typography
+              ref={annualReturnRef}
+              variant="body2"
+              fontWeight={600}
+              color={data.totalReturnPct >= 0 ? 'success.main' : 'error.main'}
+            >
+              {data.totalReturnPct >= 0 ? '+' : ''}{data.totalReturnPct}%
+            </Typography>
+          </Box>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="caption" color="text.secondary">CASH</Typography>
+            <Typography ref={cashRef} variant="body2" fontWeight={600}>
+              ${fmt(data.cashRemaining)}
+            </Typography>
+          </Box>
         </Paper>
       </Grid>
 
@@ -351,67 +441,12 @@ export default function DashboardPage() {
               </TableHead>
               <TableBody>
                 {data.holdings.map((h) => (
-                  <TableRow key={h.ticker} hover>
-                    <TableCell>
-                      <Chip
-                        label={h.ticker}
-                        size="small"
-                        clickable
-                        component={RouterLink}
-                        to={`/stocks/${h.ticker}`}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" noWrap sx={{ maxWidth: 160 }}>
-                        {h.name}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">${fmt(h.currentPrice)}</TableCell>
-                    <TableCell align="right">
-                      <Typography
-                        variant="body2"
-                        color={h.todayChange >= 0 ? 'success.main' : 'error.main'}
-                      >
-                        {h.todayChange >= 0 ? '+' : ''}
-                        {fmt(h.todayChange)} ({h.todayChangePct >= 0 ? '+' : ''}
-                        {h.todayChangePct.toFixed(2)}%)
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">${fmt(h.avgCost)}</TableCell>
-                    <TableCell align="right">{h.shares}</TableCell>
-                    <TableCell align="right">${fmt(h.totalValue)}</TableCell>
-                    <TableCell align="right">
-                      <Typography
-                        variant="body2"
-                        color={h.totalGainLoss >= 0 ? 'success.main' : 'error.main'}
-                      >
-                        {h.totalGainLoss >= 0 ? '+' : ''}$
-                        {fmt(Math.abs(h.totalGainLoss))} (
-                        {h.totalGainLossPct >= 0 ? '+' : ''}
-                        {h.totalGainLossPct.toFixed(2)}%)
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Stack direction="row" spacing={0.5} justifyContent="center">
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="success"
-                          onClick={() => navigate(`/trade?ticker=${h.ticker}`)}
-                        >
-                          Buy
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          color="error"
-                          onClick={() => navigate(`/trade?ticker=${h.ticker}&side=SELL`)}
-                        >
-                          Sell
-                        </Button>
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
+                  <HoldingRow
+                    key={h.ticker}
+                    h={h}
+                    holdingRefs={holdingRefs}
+                    navigate={navigate}
+                  />
                 ))}
 
                 {data.holdings.length === 0 && (
@@ -444,5 +479,97 @@ export default function DashboardPage() {
       </Grid>
     </Grid>
     </Fade>
+  );
+}
+
+// ── Holding row — registers refs, never re-renders on price polls ──
+function HoldingRow({
+  h,
+  holdingRefs,
+  navigate,
+}: {
+  h: DashboardData['holdings'][number];
+  holdingRefs: React.MutableRefObject<Map<string, HoldingCellRefs>>;
+  navigate: ReturnType<typeof useNavigate>;
+}) {
+  const priceRef = useRef<HTMLTableCellElement>(null);
+  const todayChangeRef = useRef<HTMLTableCellElement>(null);
+  const totalValueRef = useRef<HTMLTableCellElement>(null);
+  const totalGainLossRef = useRef<HTMLTableCellElement>(null);
+
+  useEffect(() => {
+    if (priceRef.current && todayChangeRef.current && totalValueRef.current && totalGainLossRef.current) {
+      holdingRefs.current.set(h.ticker, {
+        priceEl: priceRef.current,
+        todayChangeEl: todayChangeRef.current,
+        totalValueEl: totalValueRef.current,
+        totalGainLossEl: totalGainLossRef.current,
+      });
+    }
+    return () => { holdingRefs.current.delete(h.ticker); };
+  }, [h.ticker]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <TableRow hover>
+      <TableCell>
+        <Chip
+          label={h.ticker}
+          size="small"
+          clickable
+          component={RouterLink}
+          to={`/stocks/${h.ticker}`}
+        />
+      </TableCell>
+      <TableCell>
+        <Typography variant="body2" noWrap sx={{ maxWidth: 160 }}>
+          {h.name}
+        </Typography>
+      </TableCell>
+      <TableCell ref={priceRef} align="right" data-price={h.currentPrice}>
+        ${fmt(h.currentPrice)}
+      </TableCell>
+      <TableCell
+        ref={todayChangeRef}
+        align="right"
+        style={{ color: h.todayChange >= 0 ? '#00C805' : '#ff4d4d' }}
+      >
+        {h.todayChange >= 0 ? '+' : ''}
+        {fmt(h.todayChange)} ({h.todayChangePct >= 0 ? '+' : ''}
+        {h.todayChangePct.toFixed(2)}%)
+      </TableCell>
+      <TableCell align="right">${fmt(h.avgCost)}</TableCell>
+      <TableCell align="right">{h.shares}</TableCell>
+      <TableCell ref={totalValueRef} align="right">${fmt(h.totalValue)}</TableCell>
+      <TableCell
+        ref={totalGainLossRef}
+        align="right"
+        style={{ color: h.totalGainLoss >= 0 ? '#00C805' : '#ff4d4d' }}
+      >
+        {h.totalGainLoss >= 0 ? '+' : ''}$
+        {fmt(Math.abs(h.totalGainLoss))} (
+        {h.totalGainLossPct >= 0 ? '+' : ''}
+        {h.totalGainLossPct.toFixed(2)}%)
+      </TableCell>
+      <TableCell align="center">
+        <Stack direction="row" spacing={0.5} justifyContent="center">
+          <Button
+            size="small"
+            variant="outlined"
+            color="success"
+            onClick={() => navigate(`/trade?ticker=${h.ticker}`)}
+          >
+            Buy
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            color="error"
+            onClick={() => navigate(`/trade?ticker=${h.ticker}&side=SELL`)}
+          >
+            Sell
+          </Button>
+        </Stack>
+      </TableCell>
+    </TableRow>
   );
 }

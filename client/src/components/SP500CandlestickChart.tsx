@@ -200,7 +200,7 @@ function PureCandleChart({ points }: { points: OHLCPoint[] }) {
 
 export default function SP500CandlestickChart() {
   const [period, setPeriod] = useState('1M');
-  const { data, loading } = useApi<SP500ChartData>('/market/sp500-chart', { period }, 5_000);
+  const { data, loading } = useApi<SP500ChartData>('/market/sp500-chart', { period }, 60_000);
 
   const points  = data?.points ?? [];
   const last    = points[points.length - 1];
