@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Box, Typography, ToggleButtonGroup, ToggleButton, Skeleton } from '@mui/material';
 import {
   ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Customized, Line,
+  ResponsiveContainer, Customized, Line, usePlotArea,
 } from 'recharts';
 import useApi from '../hooks/useApi';
 
@@ -18,28 +18,39 @@ interface SP500ChartData { points: OHLCPoint[]; period: string; }
 
 const PERIODS = ['1W', '1M', '3M', '6M', '1Y', '5Y'] as const;
 
-// Renders all candles as a single SVG layer via Customized
-function CandlesLayer(props: any) {
-  const { data, xAxisMap, yAxisMap, offset } = props;
-  if (!data?.length || !xAxisMap || !yAxisMap) return null;
+// Recharts 3 changed the API: Customized no longer injects xAxisMap/yAxisMap.
+// Instead, use usePlotArea() hook and compute the scale manually.
+function CandlesLayer({ data }: { data?: OHLCPoint[] }) {
+  const plotArea = usePlotArea();
 
-  const xScale = Object.values(xAxisMap)[0] as any;
-  const yScale = Object.values(yAxisMap)[0] as any;
-  if (!xScale?.scale || !yScale?.scale) return null;
+  if (!data?.length || !plotArea) return null;
 
-  const bandwidth = (offset.width / data.length) * 0.7;
-  const halfBand  = bandwidth / 2;
+  const { x: plotX, y: plotY, width: plotW, height: plotH } = plotArea;
+
+  // X: categorical band scale — distribute n candles evenly across plot width
+  const n = data.length;
+  const slotW = plotW / n;
+  const candleW = slotW * 0.7;
+  const halfW = candleW / 2;
+
+  // Y: linear scale mirroring the explicit YAxis domain prop
+  const allValues = data.flatMap(p => [p.high, p.low]);
+  const dataYMin = Math.min(...allValues) * 0.999;
+  const dataYMax = Math.max(...allValues) * 1.001;
+  const yRange = dataYMax - dataYMin;
+
+  const yOf = (v: number) => plotY + plotH * (1 - (v - dataYMin) / yRange);
 
   return (
     <g>
-      {data.map((d: OHLCPoint, i: number) => {
+      {data.map((d, i) => {
         const bullish = d.close >= d.open;
         const color   = bullish ? '#00C805' : '#ff4d4d';
-        const cx      = xScale.scale(d.date) + (xScale.scale.bandwidth?.() ?? 0) / 2;
-        const yHigh   = yScale.scale(d.high);
-        const yLow    = yScale.scale(d.low);
-        const yTop    = yScale.scale(Math.max(d.open, d.close));
-        const yBot    = yScale.scale(Math.min(d.open, d.close));
+        const cx      = plotX + (i + 0.5) * slotW;
+        const yHigh   = yOf(d.high);
+        const yLow    = yOf(d.low);
+        const yTop    = yOf(Math.max(d.open, d.close));
+        const yBot    = yOf(Math.min(d.open, d.close));
         const bodyH   = Math.max(yBot - yTop, 1);
 
         return (
@@ -48,9 +59,9 @@ function CandlesLayer(props: any) {
             <line x1={cx} y1={yHigh} x2={cx} y2={yLow} stroke={color} strokeWidth={1} />
             {/* Body */}
             <rect
-              x={cx - halfBand}
+              x={cx - halfW}
               y={yTop}
-              width={bandwidth}
+              width={candleW}
               height={bodyH}
               fill={color}
               fillOpacity={0.85}
@@ -152,9 +163,10 @@ export default function SP500CandlestickChart() {
               tickFormatter={(v) => v.toLocaleString()}
             />
             <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#333', strokeWidth: 1 }} />
-            {/* Hidden line forces Recharts to compute axis scales needed by CandlesLayer */}
+            {/* Hidden line ensures Recharts computes axis layout before CandlesLayer renders */}
             <Line dataKey="close" stroke="transparent" dot={false} isAnimationActive={false} legendType="none" />
-            <Customized component={CandlesLayer} />
+            {/* CandlesLayer uses usePlotArea() hook; data is passed via Customized props */}
+            <Customized component={CandlesLayer} data={points} />
           </ComposedChart>
         </ResponsiveContainer>
       )}
