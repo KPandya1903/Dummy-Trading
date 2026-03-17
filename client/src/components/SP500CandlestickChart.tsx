@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Box, Typography, ToggleButtonGroup, ToggleButton, Skeleton } from '@mui/material';
 import {
   ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Customized,
+  ResponsiveContainer, Customized, Line,
 } from 'recharts';
 import useApi from '../hooks/useApi';
 
@@ -152,6 +152,8 @@ export default function SP500CandlestickChart() {
               tickFormatter={(v) => v.toLocaleString()}
             />
             <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#333', strokeWidth: 1 }} />
+            {/* Hidden line forces Recharts to compute axis scales needed by CandlesLayer */}
+            <Line dataKey="close" stroke="transparent" dot={false} isAnimationActive={false} legendType="none" />
             <Customized component={CandlesLayer} />
           </ComposedChart>
         </ResponsiveContainer>
