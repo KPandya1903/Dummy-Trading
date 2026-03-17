@@ -114,7 +114,7 @@ export default function MarketPage() {
   const { data: response, loading, error } = useApi<MarketResponse>(
     '/market',
     apiParams,
-    1_000,
+    5_000,
   );
 
 
