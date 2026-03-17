@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { ThemeProvider, CssBaseline } from '@mui/material';
+import { ThemeProvider, CssBaseline, GlobalStyles } from '@mui/material';
 import '@fontsource/inter/400.css';
 import '@fontsource/inter/500.css';
 import '@fontsource/inter/600.css';
@@ -17,6 +17,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <ThemeProvider theme={theme}>
           <CssBaseline />
+          <GlobalStyles styles={{
+            '@keyframes flash-up':   { from: { backgroundColor: 'rgba(0,200,5,0.15)' },   to: { backgroundColor: 'transparent' } },
+            '@keyframes flash-down': { from: { backgroundColor: 'rgba(255,77,77,0.15)' }, to: { backgroundColor: 'transparent' } },
+            'tr.flash-up':   { animation: 'flash-up   0.6s ease-out forwards' },
+            'tr.flash-down': { animation: 'flash-down 0.6s ease-out forwards' },
+          }} />
           <ToastProvider>
             <App />
           </ToastProvider>

@@ -35,6 +35,7 @@ import CandlestickChartIcon from '@mui/icons-material/CandlestickChart';
 import SearchIcon from '@mui/icons-material/Search';
 import { Link as RouterLink } from 'react-router-dom';
 import useApi from '../hooks/useApi';
+import apiClient from '../apiClient';
 import SP500CandlestickChart from '../components/SP500CandlestickChart';
 import SP500IndexChart from '../components/SP500IndexChart';
 import MarketClassifierTiles from '../components/MarketClassifierTiles';
@@ -59,6 +60,12 @@ interface MarketResponse {
   sectors: string[];
 }
 
+interface CellRefs {
+  priceEl: HTMLElement;
+  changePctEl: HTMLElement;
+  volumeEl: HTMLElement;
+}
+
 function fmt(n: number): string {
   return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -73,9 +80,7 @@ function fmtVolume(n: number | null): string {
 
 type SortField = 'ticker' | 'name' | 'price' | 'changePct' | 'marketCap' | 'volume' | 'sector';
 
-// ── MarketPage — owns only the view toggle and page layout ──────────────────
-// The stock table has its own polling state so live price updates never
-// cause the S&P chart, classifier tiles, or regime panel to re-render.
+// ── MarketPage — owns only the view toggle, never re-renders from price polls ─
 export default function MarketPage() {
   const [view, setView] = useState<'table' | 'candle'>('table');
 
@@ -98,12 +103,10 @@ export default function MarketPage() {
         </ToggleButtonGroup>
       </Box>
 
-      {/* S&P 500 Chart — line in table mode, candlestick in candle mode */}
       <Paper
         variant="outlined"
         sx={{
-          p: 4,
-          mb: 3,
+          p: 4, mb: 3,
           background: 'linear-gradient(135deg, #111111 0%, #1a1a1a 100%)',
           border: '1px solid rgba(0,200,5,0.1)',
         }}
@@ -129,8 +132,10 @@ export default function MarketPage() {
   );
 }
 
-// ── StockTable — owns all polling, sort, filter, and pagination state ───────
-// Re-renders only this component on each 5s poll, leaving everything above untouched.
+// ── StockTable ─────────────────────────────────────────────────────────────
+// Two update paths:
+//   1. Structural changes (page/sort/filter) → useApi refetch → React re-render
+//   2. Live price poll (every 5s) → direct DOM mutation via cellRefs → zero re-render
 function StockTable() {
   const isLoggedIn = !!localStorage.getItem('token');
 
@@ -143,22 +148,70 @@ function StockTable() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   useEffect(() => {
-    const timer = setTimeout(() => { setDebouncedSearch(search); setPage(0); }, 300);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => { setDebouncedSearch(search); setPage(0); }, 300);
+    return () => clearTimeout(t);
   }, [search]);
 
   useEffect(() => { setPage(0); }, [sector, sortField, sortOrder]);
 
   const apiParams: Record<string, unknown> = {
-    page: page + 1,
-    limit: rowsPerPage,
-    sort: sortField,
-    order: sortOrder,
+    page: page + 1, limit: rowsPerPage, sort: sortField, order: sortOrder,
   };
   if (sector) apiParams.sector = sector;
   if (debouncedSearch) apiParams.q = debouncedSearch;
 
-  const { data: response, loading, error } = useApi<MarketResponse>('/market', apiParams, 5_000);
+  // Structural fetch only — no poll interval here
+  const { data: response, loading, error } = useApi<MarketResponse>('/market', apiParams);
+
+  // Always-current params for the poll closure
+  const apiParamsRef = useRef(apiParams);
+  useEffect(() => { apiParamsRef.current = apiParams; });
+
+  // ticker → live cell DOM refs
+  const cellRefs = useRef<Map<string, CellRefs>>(new Map());
+
+  // Direct DOM poll — fires every 5s, never calls setState
+  useEffect(() => {
+    if (!response) return;
+    const id = setInterval(async () => {
+      try {
+        const { data: result } = await apiClient.get<MarketResponse>('/market', { params: apiParamsRef.current });
+        for (const entry of result.data) {
+          const cells = cellRefs.current.get(entry.ticker);
+          if (!cells) continue;
+
+          // Price
+          const prev = Number(cells.priceEl.dataset.price ?? 0);
+          if (prev !== entry.price) {
+            cells.priceEl.textContent = `$${fmt(entry.price)}`;
+            cells.priceEl.dataset.price = String(entry.price);
+            const row = cells.priceEl.closest('tr') as HTMLElement | null;
+            if (row) {
+              row.classList.remove('flash-up', 'flash-down');
+              // Force reflow so animation restarts if the same direction fires twice
+              void row.offsetHeight;
+              row.classList.add(entry.price > prev ? 'flash-up' : 'flash-down');
+              setTimeout(() => row.classList.remove('flash-up', 'flash-down'), 650);
+            }
+          }
+
+          // Change %
+          if (cells.changePctEl.dataset.val !== String(entry.changePct)) {
+            cells.changePctEl.dataset.val = String(entry.changePct);
+            cells.changePctEl.textContent = `${entry.changePct >= 0 ? '+' : ''}${entry.changePct.toFixed(2)}%`;
+            cells.changePctEl.style.color = entry.changePct >= 0 ? '#00C805' : '#ff4d4d';
+          }
+
+          // Volume
+          if (cells.volumeEl.dataset.val !== String(entry.volume)) {
+            cells.volumeEl.dataset.val = String(entry.volume ?? '');
+            cells.volumeEl.textContent = fmtVolume(entry.volume);
+          }
+        }
+      } catch { /* ignore poll errors */ }
+    }, 5_000);
+    return () => clearInterval(id);
+  }, [!!response]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -178,7 +231,7 @@ function StockTable() {
 
   return (
     <>
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+      <Box display="flex" alignItems="center" mb={2}>
         <Typography variant="body2" color="text.secondary">
           {marketState === 'REGULAR'
             ? 'Market is open — prices update every 5 sec (15-min delay).'
@@ -202,23 +255,15 @@ function StockTable() {
           sx={{ minWidth: 240 }}
           InputProps={{
             startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" />
-              </InputAdornment>
+              <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>
             ),
           }}
         />
         <FormControl size="small" sx={{ minWidth: 200 }}>
           <InputLabel>Sector</InputLabel>
-          <Select
-            value={sector}
-            label="Sector"
-            onChange={(e: SelectChangeEvent) => setSector(e.target.value)}
-          >
+          <Select value={sector} label="Sector" onChange={(e: SelectChangeEvent) => setSector(e.target.value)}>
             <MenuItem value="">All Sectors</MenuItem>
-            {sectors.map((s) => (
-              <MenuItem key={s} value={s}>{s}</MenuItem>
-            ))}
+            {sectors.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
           </Select>
         </FormControl>
       </Box>
@@ -227,13 +272,13 @@ function StockTable() {
         <Table size="small">
           <TableHead>
             <TableRow>
-              <SortableCell field="ticker" label="Ticker" current={sortField} order={sortOrder} onSort={handleSort} />
-              <SortableCell field="name" label="Company" current={sortField} order={sortOrder} onSort={handleSort} />
-              <SortableCell field="sector" label="Sector" current={sortField} order={sortOrder} onSort={handleSort} />
-              <SortableCell field="price" label="Price" current={sortField} order={sortOrder} onSort={handleSort} align="right" />
-              <SortableCell field="changePct" label="Change %" current={sortField} order={sortOrder} onSort={handleSort} align="right" />
-              <SortableCell field="marketCap" label="Mkt Cap" current={sortField} order={sortOrder} onSort={handleSort} align="right" />
-              <SortableCell field="volume" label="Volume" current={sortField} order={sortOrder} onSort={handleSort} align="right" />
+              <SortableCell field="ticker"    label="Ticker"    current={sortField} order={sortOrder} onSort={handleSort} />
+              <SortableCell field="name"      label="Company"   current={sortField} order={sortOrder} onSort={handleSort} />
+              <SortableCell field="sector"    label="Sector"    current={sortField} order={sortOrder} onSort={handleSort} />
+              <SortableCell field="price"     label="Price"     current={sortField} order={sortOrder} onSort={handleSort} align="right" />
+              <SortableCell field="changePct" label="Change %"  current={sortField} order={sortOrder} onSort={handleSort} align="right" />
+              <SortableCell field="marketCap" label="Mkt Cap"   current={sortField} order={sortOrder} onSort={handleSort} align="right" />
+              <SortableCell field="volume"    label="Volume"    current={sortField} order={sortOrder} onSort={handleSort} align="right" />
               {isLoggedIn && <TableCell align="center">Trade</TableCell>}
             </TableRow>
           </TableHead>
@@ -249,6 +294,7 @@ function StockTable() {
                 marketCap={e.marketCap}
                 volume={e.volume}
                 isLoggedIn={isLoggedIn}
+                cellRefs={cellRefs}
               />
             ))}
             {entries.length === 0 && (
@@ -279,38 +325,34 @@ function StockTable() {
   );
 }
 
-// ── StockRow — memoized; flashes green/red when price changes ───────────────
+// ── StockRow — renders once, registers DOM refs, never re-renders on price polls ─
 const StockRow = memo(function StockRow({
-  ticker, name, sector, price, changePct, marketCap, volume, isLoggedIn,
+  ticker, name, sector, price, changePct, marketCap, volume, isLoggedIn, cellRefs,
 }: {
   ticker: string; name: string; sector: string;
   price: number; changePct: number; marketCap: number | null; volume: number | null;
   isLoggedIn: boolean;
+  cellRefs: React.MutableRefObject<Map<string, CellRefs>>;
 }) {
   const navigate = useNavigate();
-  const prevPrice = useRef(price);
-  const [flash, setFlash] = useState<'up' | 'down' | null>(null);
+  const priceRef    = useRef<HTMLTableCellElement>(null);
+  const changePctRef = useRef<HTMLTableCellElement>(null);
+  const volumeRef   = useRef<HTMLTableCellElement>(null);
 
+  // Register cell DOM nodes with the parent poll loop on mount; deregister on unmount
   useEffect(() => {
-    if (prevPrice.current !== price) {
-      setFlash(price > prevPrice.current ? 'up' : 'down');
-      prevPrice.current = price;
-      const t = setTimeout(() => setFlash(null), 600);
-      return () => clearTimeout(t);
+    if (priceRef.current && changePctRef.current && volumeRef.current) {
+      cellRefs.current.set(ticker, {
+        priceEl: priceRef.current,
+        changePctEl: changePctRef.current,
+        volumeEl: volumeRef.current,
+      });
     }
-  }, [price]);
+    return () => { cellRefs.current.delete(ticker); };
+  }, [ticker]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <TableRow
-      hover
-      sx={{
-        transition: 'background-color 0.4s ease',
-        backgroundColor:
-          flash === 'up' ? 'rgba(0,200,5,0.12)' :
-          flash === 'down' ? 'rgba(255,77,77,0.12)' :
-          undefined,
-      }}
-    >
+    <TableRow hover>
       <TableCell>
         <Link component={RouterLink} to={`/stocks/${ticker}`} underline="hover" fontWeight="bold">
           {ticker}
@@ -318,20 +360,31 @@ const StockRow = memo(function StockRow({
       </TableCell>
       <TableCell>{name}</TableCell>
       <TableCell><Chip label={sector} size="small" variant="outlined" /></TableCell>
-      <TableCell align="right">${fmt(price)}</TableCell>
-      <TableCell align="right">
+
+      {/* data-price stores the current value for the poll loop to compare */}
+      <TableCell ref={priceRef} align="right" data-price={price}>
+        ${fmt(price)}
+      </TableCell>
+
+      {/* data-val stores the current value; direct style used instead of MUI Chip (lighter DOM) */}
+      <TableCell
+        ref={changePctRef}
+        align="right"
+        data-val={changePct}
+        style={{ color: changePct >= 0 ? '#00C805' : '#ff4d4d', fontWeight: 600 }}
+      >
         <Box display="flex" alignItems="center" justifyContent="flex-end" gap={0.5}>
-          {changePct > 0 ? <TrendingUpIcon fontSize="small" color="success" /> : changePct < 0 ? <TrendingDownIcon fontSize="small" color="error" /> : null}
-          <Chip
-            label={`${changePct > 0 ? '+' : ''}${changePct.toFixed(2)}%`}
-            size="small"
-            color={changePct > 0 ? 'success' : changePct < 0 ? 'error' : 'default'}
-            variant="outlined"
-          />
+          {changePct > 0 ? <TrendingUpIcon fontSize="small" /> : changePct < 0 ? <TrendingDownIcon fontSize="small" /> : null}
+          {changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%
         </Box>
       </TableCell>
+
       <TableCell align="right">{marketCap != null ? `$${fmt(marketCap)}B` : '—'}</TableCell>
-      <TableCell align="right">{fmtVolume(volume)}</TableCell>
+
+      <TableCell ref={volumeRef} align="right" data-val={volume ?? ''}>
+        {fmtVolume(volume)}
+      </TableCell>
+
       {isLoggedIn && (
         <TableCell align="center">
           <Tooltip title={`Trade ${ticker}`}>
@@ -345,7 +398,7 @@ const StockRow = memo(function StockRow({
   );
 });
 
-// ── Sortable table header cell ──────────────────────────────
+// ── Sortable table header cell ──────────────────────────────────────────────
 function SortableCell({
   field, label, current, order, onSort, align,
 }: {
