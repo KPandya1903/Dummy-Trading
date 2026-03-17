@@ -166,7 +166,7 @@ export default function MarketPage() {
         </ToggleButtonGroup>
       </Box>
 
-      {/* S&P 500 Index Chart */}
+      {/* S&P 500 Chart — line in table mode, candlestick in candle mode */}
       <Paper
         variant="outlined"
         sx={{
@@ -176,7 +176,7 @@ export default function MarketPage() {
           border: '1px solid rgba(0,200,5,0.1)',
         }}
       >
-        <SP500IndexChart />
+        {view === 'candle' ? <SP500CandlestickChart /> : <SP500IndexChart />}
       </Paper>
 
       {/* Market Regime */}
@@ -200,9 +200,7 @@ export default function MarketPage() {
         </Alert>
       )}
 
-      {view === 'candle' ? (
-        <SP500CandlestickChart />
-      ) : view === 'table' ? (
+      {view === 'table' ? (
         <>
           {/* Filters */}
           <Box display="flex" gap={2} mb={2} flexWrap="wrap">
