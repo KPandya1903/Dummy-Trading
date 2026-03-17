@@ -141,7 +141,7 @@ router.get('/:id/history', async (req: Request, res: Response) => {
     if (history.length > 0) {
       try {
         const startDate = history[0].date;
-        const spData = await yf.historical('^GSPC', { period1: startDate });
+        const spData = (await yf.chart('^GSPC', { period1: startDate, interval: '1d' as const })).quotes.filter((q: any) => q.close !== null);
         if (spData.length >= 2) {
           // Normalize to same starting value as portfolio
           const startValue = portfolio.startingCash;
@@ -234,7 +234,7 @@ router.get('/:id/risk', async (req: Request, res: Response) => {
     if (history.length >= 2) {
       try {
         const startDate = history[0].date;
-        const spData = await yf.historical('^GSPC', { period1: startDate });
+        const spData = (await yf.chart('^GSPC', { period1: startDate, interval: '1d' as const })).quotes.filter((q: any) => q.close !== null);
         const spMap = new Map<string, number>();
         for (let i = 1; i < (spData as any[]).length; i++) {
           const prev = (spData as any[])[i - 1];

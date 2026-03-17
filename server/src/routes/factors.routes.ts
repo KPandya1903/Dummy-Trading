@@ -224,10 +224,11 @@ router.get('/:ticker', async (req: Request, res: Response) => {
 
     // Fetch history and quote in parallel
     const [history, quote] = await Promise.all([
-      yf.historical(ticker, {
+      yf.chart(ticker, {
         period1: startDate.toISOString().split('T')[0],
         period2: new Date().toISOString().split('T')[0],
-      }),
+        interval: '1d' as const,
+      }).then((r: any) => r.quotes.filter((q: any) => q.close !== null)),
       yf.quote(ticker).catch(() => null),
     ]);
 

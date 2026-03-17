@@ -22,10 +22,11 @@ router.get('/:ticker', async (req: Request, res: Response) => {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const history = await yf.historical(ticker, {
+    const history = (await yf.chart(ticker, {
       period1: startDate.toISOString().split('T')[0],
       period2: new Date().toISOString().split('T')[0],
-    });
+      interval: '1d' as const,
+    })).quotes.filter((q: any) => q.close !== null);
 
     if (!history || history.length === 0) {
       res.status(404).json({ error: `No historical data for ${ticker}` });

@@ -160,10 +160,11 @@ router.get('/', async (_req: Request, res: Response) => {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 365);
 
-    const history = await yf.historical('^GSPC', {
+    const history = (await yf.chart('^GSPC', {
       period1: startDate.toISOString().split('T')[0],
       period2: new Date().toISOString().split('T')[0],
-    });
+      interval: '1d' as const,
+    })).quotes.filter((q: any) => q.close !== null);
 
     if (!history || history.length < 30) {
       res.status(503).json({ error: 'Insufficient S&P 500 data for regime detection' });

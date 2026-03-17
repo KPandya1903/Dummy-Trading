@@ -136,10 +136,11 @@ router.get('/sp500-chart', async (req: Request, res: Response) => {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const history = await yf.historical('^GSPC', {
+    const history = (await yf.chart('^GSPC', {
       period1: startDate.toISOString().split('T')[0],
       period2: new Date().toISOString().split('T')[0],
-    });
+      interval: '1d' as const,
+    })).quotes.filter((q: any) => q.close !== null);
 
     const points = (history || [])
       .map((h: any) => ({

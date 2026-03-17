@@ -90,10 +90,11 @@ async function fetchCandles(ticker: string): Promise<OHLCV[] | null> {
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - 365);
 
-  const history = await yf.historical(ticker, {
+  const history = (await yf.chart(ticker, {
     period1: startDate.toISOString().split('T')[0],
     period2: new Date().toISOString().split('T')[0],
-  });
+    interval: '1d' as const,
+  })).quotes.filter((q: any) => q.close !== null);
 
   if (!history || history.length < 30) return null;
 
@@ -121,10 +122,11 @@ router.get('/:ticker', async (req: Request, res: Response) => {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 365);
 
-    const history = await yf.historical(ticker, {
+    const history = (await yf.chart(ticker, {
       period1: startDate.toISOString().split('T')[0],
       period2: new Date().toISOString().split('T')[0],
-    });
+      interval: '1d' as const,
+    })).quotes.filter((q: any) => q.close !== null);
 
     if (!history || history.length < 30) {
       res.status(404).json({ error: `Insufficient data for ${ticker}` });

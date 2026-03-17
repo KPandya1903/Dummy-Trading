@@ -112,10 +112,11 @@ async function fetchPriceHistory(ticker: string): Promise<PricePoint[]> {
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - 365);
 
-  const history = await yf.historical(ticker, {
+  const history = (await yf.chart(ticker, {
     period1: startDate.toISOString().split('T')[0],
     period2: new Date().toISOString().split('T')[0],
-  });
+    interval: '1d' as const,
+  })).quotes.filter((q: any) => q.close !== null);
 
   return (history as any[])
     .map((h) => ({

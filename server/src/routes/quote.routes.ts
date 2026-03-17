@@ -48,12 +48,13 @@ router.get('/:ticker', async (req: Request, res: Response) => {
     // Fetch quote + summary in parallel
     const [quote, history] = await Promise.all([
       yf.quote(ticker),
-      yf.historical(ticker, {
+      yf.chart(ticker, {
         period1: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
           .toISOString()
           .split('T')[0],
         period2: new Date().toISOString().split('T')[0],
-      }).catch(() => [] as any[]),
+        interval: '1d' as const,
+      }).then((r: any) => r.quotes.filter((q: any) => q.close !== null)).catch(() => [] as any[]),
     ]);
 
     // Try to get sector/industry from quoteSummary
