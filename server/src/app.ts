@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import { warmMarketCaps, warmFundamentals } from './services/marketService.js';
 
 import authRoutes from './routes/auth.routes.js';
 import portfolioRoutes from './routes/portfolio.routes.js';
@@ -33,6 +34,9 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// Warm caches on cold start (fire-and-forget — so every Vercel container has market cap data)
+warmMarketCaps().then(() => warmFundamentals()).catch(console.error);
 
 // ── Routes ───────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {

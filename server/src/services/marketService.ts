@@ -198,7 +198,7 @@ export async function warmFundamentals(): Promise<void> {
         data.set(q.symbol, {
           fiftyTwoWeekHigh: q.fiftyTwoWeekHigh ?? null,
           trailingPE: (q as any).trailingPE ?? null,
-          dividendYield: (q as any).dividendYield != null ? round2((q as any).dividendYield * 100) : null,
+          dividendYield: (q as any).dividendYield != null ? round2((q as any).dividendYield) : null,
         });
       }
     } catch (err) {

@@ -74,7 +74,7 @@ router.get('/:ticker', async (req: Request, res: Response) => {
       changePct: round2(quote.regularMarketChangePercent) ?? 0,
       marketCap: round2((quote.marketCap ?? 0) / 1e9), // in billions
       pe: round2(quote.trailingPE as number),
-      dividendYield: round2(((quote as any).dividendYield ?? 0) * 100),
+      dividendYield: round2((quote as any).dividendYield ?? 0),
       high52w: round2(quote.fiftyTwoWeekHigh),
       low52w: round2(quote.fiftyTwoWeekLow),
       volume: quote.regularMarketVolume ?? null,
