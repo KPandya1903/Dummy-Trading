@@ -164,14 +164,23 @@ export default function StockComparisonPage() {
         <Box display="flex" gap={2} alignItems="center" flexWrap="wrap" mb={2}>
           <Autocomplete
             freeSolo
-            options={searchResults.map((r) => r.ticker)}
-            getOptionLabel={(opt) => {
-              const match = searchResults.find((r) => r.ticker === opt);
-              return match ? `${match.ticker} — ${match.name}` : String(opt);
-            }}
+            options={searchResults}
+            getOptionLabel={(opt) =>
+              typeof opt === 'string' ? opt : `${opt.ticker} — ${opt.name}`
+            }
+            filterOptions={(x) => x}
             inputValue={searchInput}
             onInputChange={(_e, val) => setSearchInput(val)}
-            onChange={(_e, val) => { if (val) addTicker(String(val).toUpperCase()); }}
+            onChange={(_e, val) => {
+              if (val && typeof val !== 'string') addTicker(val.ticker.toUpperCase());
+              else if (typeof val === 'string' && val) addTicker(val.toUpperCase());
+            }}
+            renderOption={(props, option) => (
+              <Box component="li" {...props} key={option.ticker} sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                <Typography variant="body2" fontWeight="bold">{option.ticker}</Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>{option.name}</Typography>
+              </Box>
+            )}
             renderInput={(params) => (
               <TextField
                 {...params}
