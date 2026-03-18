@@ -1,31 +1,32 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import Layout from './components/Layout';
+import Layout from './components/layout/Layout';
 import PageLoader from './components/ui/PageLoader';
 
-const LoginPage            = lazy(() => import('./pages/LoginPage'));
-const PortfolioListPage    = lazy(() => import('./pages/PortfolioListPage'));
-const PortfolioDetailPage  = lazy(() => import('./pages/PortfolioDetailPage'));
-const TradeHistoryPage     = lazy(() => import('./pages/TradeHistoryPage'));
-const WatchlistPage        = lazy(() => import('./pages/WatchlistPage'));
-const LeaderboardPage      = lazy(() => import('./pages/LeaderboardPage'));
-const MarketPage           = lazy(() => import('./pages/MarketPage'));
-const GroupListPage        = lazy(() => import('./pages/GroupListPage'));
-const GroupDetailPage      = lazy(() => import('./pages/GroupDetailPage'));
-const TradePage            = lazy(() => import('./pages/TradePage'));
-const StockDetailPage      = lazy(() => import('./pages/StockDetailPage'));
-const DashboardPage        = lazy(() => import('./pages/DashboardPage'));
-const BadgesPage           = lazy(() => import('./pages/BadgesPage'));
-const StockComparisonPage  = lazy(() => import('./pages/StockComparisonPage'));
-const StockAnalysisPage    = lazy(() => import('./pages/StockAnalysisPage'));
-const StockPredictionPage  = lazy(() => import('./pages/StockPredictionPage'));
-const AnalysisLandingPage  = lazy(() => import('./pages/AnalysisLandingPage'));
-const PredictionLandingPage = lazy(() => import('./pages/PredictionLandingPage'));
-const NewsLandingPage      = lazy(() => import('./pages/NewsLandingPage'));
-const ResearchLandingPage  = lazy(() => import('./pages/ResearchLandingPage'));
-const ResearchReportPage   = lazy(() => import('./pages/ResearchReportPage'));
-const ScreenerPage         = lazy(() => import('./pages/ScreenerPage'));
-const ProfilePage          = lazy(() => import('./pages/ProfilePage'));
+const LoginPage            = lazy(() => import('./pages/auth/LoginPage'));
+const PortfolioListPage    = lazy(() => import('./pages/trading/PortfolioListPage'));
+const PortfolioDetailPage  = lazy(() => import('./pages/trading/PortfolioDetailPage'));
+const TradeHistoryPage     = lazy(() => import('./pages/trading/TradeHistoryPage'));
+const WatchlistPage        = lazy(() => import('./pages/watchlist/WatchlistPage'));
+const LeaderboardPage      = lazy(() => import('./pages/social/LeaderboardPage'));
+const MarketPage           = lazy(() => import('./pages/market/MarketPage'));
+const GroupListPage        = lazy(() => import('./pages/social/GroupListPage'));
+const GroupDetailPage      = lazy(() => import('./pages/social/GroupDetailPage'));
+const TradePage            = lazy(() => import('./pages/trading/TradePage'));
+const StockDetailPage      = lazy(() => import('./pages/market/StockDetailPage'));
+const DashboardPage        = lazy(() => import('./pages/dashboard/DashboardPage'));
+const BadgesPage           = lazy(() => import('./pages/social/BadgesPage'));
+const StockComparisonPage  = lazy(() => import('./pages/market/StockComparisonPage'));
+const StockAnalysisPage    = lazy(() => import('./pages/analysis/StockAnalysisPage'));
+const StockPredictionPage  = lazy(() => import('./pages/analysis/StockPredictionPage'));
+const AnalysisLandingPage  = lazy(() => import('./pages/analysis/AnalysisLandingPage'));
+const PredictionLandingPage = lazy(() => import('./pages/analysis/PredictionLandingPage'));
+const NewsLandingPage      = lazy(() => import('./pages/content/NewsLandingPage'));
+const ResearchLandingPage  = lazy(() => import('./pages/content/ResearchLandingPage'));
+const ResearchReportPage   = lazy(() => import('./pages/content/ResearchReportPage'));
+const ScreenerPage         = lazy(() => import('./pages/analysis/ScreenerPage'));
+const ProfilePage          = lazy(() => import('./pages/auth/ProfilePage'));
+const OptionsChainPage     = lazy(() => import('./pages/trading/OptionsChainPage'));
 
 function RequireAuth() {
   const token = localStorage.getItem('token');
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/market" element={<MarketPage />} />
           <Route path="/stocks/:ticker" element={<StockDetailPage />} />
+          <Route path="/stocks/:ticker/options" element={<OptionsChainPage />} />
           <Route path="/analysis" element={<AnalysisLandingPage />} />
           <Route path="/stocks/:ticker/analysis" element={<StockAnalysisPage />} />
           <Route path="/compare" element={<StockComparisonPage />} />

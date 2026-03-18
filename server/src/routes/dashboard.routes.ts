@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../prisma.js';
 import { authenticate } from '../middleware/auth.js';
-import { computeSummary, TradeInput } from '../services/portfolioService.js';
-import { getCurrentPrices } from '../services/priceService.js';
-import { getMarketData, MarketEntry } from '../services/marketService.js';
+import { computeSummary, TradeInput } from '../services/trading/portfolioService.js';
+import { getCurrentPrices } from '../services/market/priceService.js';
+import { getMarketData, MarketEntry } from '../services/market/marketService.js';
 
 const router = Router();
 router.use(authenticate);

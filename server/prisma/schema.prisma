@@ -42,6 +42,18 @@ enum Badge {
   FULL_PORTFOLIO
 }
 
+enum OptionType {
+  CALL
+  PUT
+}
+
+enum OptionStatus {
+  OPEN
+  CLOSED
+  EXPIRED
+  EXERCISED
+}
+
 enum ResearchStatus {
   PENDING
   IN_PROGRESS
@@ -85,9 +97,10 @@ model Portfolio {
   startingCash Float    @default(100000)
   groupId      Int?
   group        Group?   @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  trades         Trade[]
-  pendingOrders  PendingOrder[]
-  createdAt      DateTime @default(now())
+  trades            Trade[]
+  pendingOrders     PendingOrder[]
+  optionContracts   OptionContract[]
+  createdAt         DateTime @default(now())
 
   @@unique([groupId, userId])
   @@index([userId])
@@ -140,6 +153,29 @@ model PendingOrder {
 
   @@index([status])
   @@index([portfolioId])
+}
+
+model OptionContract {
+  id              Int          @id @default(autoincrement())
+  portfolioId     Int
+  portfolio       Portfolio    @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  ticker          String
+  optionType      OptionType
+  side            TradeSide    // BUY or SELL (writing)
+  strikePrice     Float
+  expirationDate  DateTime
+  quantity        Int          // number of contracts (each = 100 shares)
+  premium         Float        // price per share paid/received
+  status          OptionStatus @default(OPEN)
+  openedAt        DateTime     @default(now())
+  closedAt        DateTime?
+  closePrice      Float?       // premium at close
+  exercised       Boolean      @default(false)
+  note            String?
+
+  @@index([portfolioId])
+  @@index([status])
+  @@index([expirationDate])
 }
 
 model Group {

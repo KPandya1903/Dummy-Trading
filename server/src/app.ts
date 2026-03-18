@@ -1,34 +1,50 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { warmMarketCaps, warmFundamentals } from './services/marketService.js';
+import { warmMarketCaps, warmFundamentals } from './services/market/marketService.js';
 
-import authRoutes from './routes/auth.routes.js';
-import portfolioRoutes from './routes/portfolio.routes.js';
-import tradeRoutes from './routes/trade.routes.js';
-import watchlistRoutes from './routes/watchlist.routes.js';
-import leaderboardRoutes from './routes/leaderboard.routes.js';
-import marketRoutes from './routes/market.routes.js';
-import groupRoutes from './routes/group.routes.js';
-import orderRoutes from './routes/order.routes.js';
-import quoteRoutes from './routes/quote.routes.js';
-import alertRoutes from './routes/alert.routes.js';
+// ── Auth ──
+import authRoutes from './routes/auth/auth.routes.js';
+import userRoutes from './routes/auth/user.routes.js';
+
+// ── Trading ──
+import portfolioRoutes from './routes/trading/portfolio.routes.js';
+import tradeRoutes from './routes/trading/trade.routes.js';
+import orderRoutes from './routes/trading/order.routes.js';
+import optionsRoutes from './routes/trading/options.routes.js';
+
+// ── Market ──
+import marketRoutes from './routes/market/market.routes.js';
+import regimeRoutes from './routes/market/marketRegime.routes.js';
+import classifierRoutes from './routes/market/marketClassifiers.routes.js';
+import quoteRoutes from './routes/market/quote.routes.js';
+import searchRoutes from './routes/market/search.routes.js';
+
+// ── Analysis ──
+import analysisRoutes from './routes/analysis/analysis.routes.js';
+import compareRoutes from './routes/analysis/compare.routes.js';
+import factorRoutes from './routes/analysis/factors.routes.js';
+import screenerRoutes from './routes/analysis/screener.routes.js';
+import predictRoutes from './routes/analysis/predict.routes.js';
+import valuationRoutes from './routes/analysis/valuation.routes.js';
+
+// ── Social ──
+import groupRoutes from './routes/social/group.routes.js';
+import leaderboardRoutes from './routes/social/leaderboard.routes.js';
+import badgeRoutes from './routes/social/badge.routes.js';
+
+// ── Alerts ──
+import alertRoutes from './routes/alerts/alert.routes.js';
+import watchlistRoutes from './routes/alerts/watchlist.routes.js';
+
+// ── Content ──
+import newsRoutes from './routes/content/news.routes.js';
+import geminiRoutes from './routes/content/gemini.routes.js';
+import researchRoutes from './routes/content/research.routes.js';
+
+// ── Other ──
 import dashboardRoutes from './routes/dashboard.routes.js';
-import badgeRoutes from './routes/badge.routes.js';
-import classifierRoutes from './routes/marketClassifiers.routes.js';
-import compareRoutes from './routes/compare.routes.js';
-import analysisRoutes from './routes/analysis.routes.js';
-import factorRoutes from './routes/factors.routes.js';
-import predictRoutes from './routes/predict.routes.js';
-import regimeRoutes from './routes/marketRegime.routes.js';
-import newsRoutes from './routes/news.routes.js';
-import geminiRoutes from './routes/gemini.routes.js';
-import searchRoutes from './routes/search.routes.js';
-import researchRoutes from './routes/research.routes.js';
 import cronRoutes from './routes/cron.routes.js';
-import screenerRoutes from './routes/screener.routes.js';
-import valuationRoutes from './routes/valuation.routes.js';
-import userRoutes from './routes/user.routes.js';
 
 const app = express();
 
@@ -53,6 +69,7 @@ app.use('/api/market/regime', regimeRoutes);
 app.use('/api/market', marketRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/options', optionsRoutes);
 app.use('/api/quotes', quoteRoutes);
 app.use('/api/alerts', alertRoutes);
 app.use('/api/dashboard', dashboardRoutes);

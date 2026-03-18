@@ -1,7 +1,7 @@
 import app from './app.js';
-import { checkPendingOrders } from './services/orderService.js';
-import { checkAlerts } from './services/alertService.js';
-import { getMarketData, warmMarketCaps, warmFundamentals } from './services/marketService.js';
+import { checkPendingOrders } from './services/trading/orderService.js';
+import { checkAlerts } from './services/social/alertService.js';
+import { getMarketData, warmMarketCaps, warmFundamentals } from './services/market/marketService.js';
 
 const PORT = process.env.PORT || 3001;
 
