@@ -25,10 +25,13 @@ A full-featured paper trading platform where users get virtual cash, trade stock
 ### Trading & Portfolios
 - Multiple portfolios per user with $100k starting cash
 - Real-time trade execution via Alpaca pricing
+- **Server-side validation**: can only buy with sufficient cash, sell with sufficient shares
 - Weighted-average cost basis, realized/unrealized P&L
-- Limit and stop orders with 60-second automatic checking
+- **FIFO tax tracking**: short-term vs long-term capital gains, wash sale detection, estimated tax liability (32% ST / 15% LT)
+- Limit and stop orders with 60-second automatic checking (re-validated at fill time)
 - Trade history with CSV export and post-trade review journal
 - Portfolio performance chart with S&P 500 benchmark overlay
+- Tax preview on SELL confirmation — shows estimated tax impact before executing
 
 ### Group Competitions
 - Create or join groups via invite code
@@ -92,84 +95,57 @@ A full-featured paper trading platform where users get virtual cash, trade stock
 ## Project Structure
 
 ```
-├── server/
-│   ├── prisma/schema.prisma          # 10 models, 6 enums
-│   └── src/
-│       ├── index.ts                  # Express entry, route mounts, background tasks
-│       ├── middleware/
-│       │   └── auth.ts               # JWT Bearer token middleware
-│       ├── routes/
-│       │   ├── auth.routes.ts        # Google OAuth + JWT issuance
-│       │   ├── user.routes.ts        # Profile GET/PATCH
-│       │   ├── portfolio.routes.ts   # CRUD, summary, performance history
-│       │   ├── trade.routes.ts       # Execute, list, export CSV, review
-│       │   ├── watchlist.routes.ts   # CRUD with price alerts
-│       │   ├── alert.routes.ts       # Triggered alerts
-│       │   ├── leaderboard.routes.ts # Global rankings
-│       │   ├── group.routes.ts       # Competitions
-│       │   ├── order.routes.ts       # Limit/stop orders
-│       │   ├── badge.routes.ts       # Achievement system
-│       │   ├── dashboard.routes.ts   # Dashboard aggregate
-│       │   ├── market.routes.ts      # S&P 500 data, search, OHLC chart
-│       │   ├── marketClassifiers.routes.ts  # 10 classifier tiles
-│       │   ├── search.routes.ts      # Universal Yahoo Finance search
-│       │   ├── quote.routes.ts       # Detailed stock quotes
-│       │   ├── analysis.routes.ts    # Technical indicators
-│       │   ├── predict.routes.ts     # ML ensemble predictions
-│       │   ├── news.routes.ts        # AI news summaries
-│       │   ├── gemini.routes.ts      # Gemini AI insights
-│       │   ├── compare.routes.ts     # Stock comparison
-│       │   └── research.routes.ts    # Deep research pipeline
-│       └── services/
-│           ├── prediction/           # Stacked ensemble system
-│           │   ├── types.ts          # Shared interfaces
-│           │   ├── utils.ts          # Normalization, business-day helpers
-│           │   ├── featureEngineering.ts  # 23-feature matrix builder
-│           │   ├── baseLearners/
-│           │   │   ├── exponentialSmoothing.ts  # Holt-Winters
-│           │   │   ├── enhancedLstm.ts          # Bidirectional LSTM
-│           │   │   ├── gruModel.ts              # GRU network
-│           │   │   └── featureCombiner.ts       # Dense network
-│           │   ├── metaLearner.ts    # Level-1 stacking
-│           │   ├── ensemble.ts       # Orchestrator
-│           │   ├── backtesting.ts    # Walk-forward validation
-│           │   └── index.ts          # Public exports
-│           ├── technicalAnalysisService.ts  # RSI, MACD, BB, SMA, EMA, Weinstein
-│           ├── ollamaService.ts      # Local LLM (DeepSeek-R1)
-│           ├── webScraperService.ts  # News scraping
-│           ├── researchService.ts    # Research pipeline
-│           ├── geminiService.ts      # Gemini API
-│           ├── marketService.ts      # Market data cache (2s TTL)
-│           ├── priceService.ts       # Alpaca real-time prices
-│           ├── portfolioService.ts   # Portfolio calculations
-│           ├── alertService.ts       # Alert checking (60s)
-│           ├── orderService.ts       # Order checking (60s)
-│           └── badgeService.ts       # Achievement system
-└── client/
-    └── src/
-        ├── App.tsx                   # 20+ routes, Google OAuth provider
-        ├── theme.ts                  # Black/green Robinhood-style dark theme
-        ├── components/
-        │   ├── Layout.tsx            # Sidebar nav + ticker tape
-        │   ├── TickerTape.tsx        # Scrolling price ticker (1s polling)
-        │   ├── SP500CandlestickChart.tsx  # OHLC candlestick via Recharts Customized layer
-        │   ├── SP500IndexChart.tsx   # S&P 500 line chart
-        │   ├── GeminiInsightPanel.tsx # AI analysis panel
-        │   ├── MarketClassifierTiles.tsx  # 10 classifier cards
-        │   ├── MarketRegimePanel.tsx # Market regime indicator
-        │   └── ...                   # Charts, forms, research tiles
-        └── pages/
-            ├── LoginPage.tsx         # Google OAuth sign-in
-            ├── ProfilePage.tsx       # User profile + stats + edit
-            ├── DashboardPage.tsx     # Main dashboard
-            ├── MarketPage.tsx        # S&P 500 browser + candlestick toggle
-            ├── StockDetailPage.tsx   # Stock quotes & fundamentals
-            ├── StockAnalysisPage.tsx # Technical analysis charts
-            ├── StockPredictionPage.tsx  # ML prediction + ensemble
-            ├── StockComparisonPage.tsx  # Multi-stock comparison
-            ├── ResearchLandingPage.tsx  # Research tool
-            ├── ResearchReportPage.tsx   # Research report viewer
-            └── ...                   # Portfolios, trades, groups, etc.
+├── server/src/
+│   ├── app.ts                        # Express app — all route mounts
+│   ├── index.ts                      # Server entry point + background tasks
+│   ├── prisma.ts                     # Prisma client singleton
+│   ├── middleware/auth.ts            # JWT Bearer token middleware
+│   ├── routes/                       # Grouped by domain
+│   │   ├── auth/                     # OAuth, JWT issuance, user profile
+│   │   ├── trading/                  # Trades, orders, portfolios, tax
+│   │   ├── market/                   # S&P 500, quotes, search, regime, classifiers
+│   │   ├── analysis/                 # Technical analysis, screener, prediction, valuation
+│   │   ├── social/                   # Groups, leaderboard, badges
+│   │   ├── alerts/                   # Alerts, watchlist
+│   │   ├── content/                  # News, Gemini AI, deep research
+│   │   ├── dashboard.routes.ts
+│   │   └── cron.routes.ts
+│   └── services/                     # Grouped by domain
+│       ├── trading/                  # portfolioService, tradeValidation, orderService, taxService
+│       ├── market/                   # priceService, marketService, technicalAnalysis
+│       ├── ai/                       # geminiService, groqService, ollamaService, researchService
+│       ├── social/                   # badgeService, alertService
+│       ├── data/                     # tickerMetadata, sp500, webScraperService
+│       └── prediction/              # Stacked ensemble ML (4 base learners + meta-learner)
+│           ├── baseLearners/         # Holt-Winters, LSTM, GRU, Dense
+│           ├── featureEngineering.ts # 23-feature matrix builder
+│           ├── ensemble.ts           # Orchestrator
+│           └── backtesting.ts        # Walk-forward validation
+│
+├── client/src/
+│   ├── App.tsx                       # 23+ routes, lazy-loaded pages
+│   ├── theme.ts                      # Black/green Robinhood-style dark theme
+│   ├── components/                   # Grouped by domain
+│   │   ├── ui/                       # Reusable primitives (PageLoader, StatCard, etc.)
+│   │   ├── layout/                   # Layout shell, AlertBadge, TickerTape
+│   │   ├── trading/                  # TradeForm, AnimatedNumber
+│   │   ├── portfolio/                # Charts, RiskMetrics, TaxSummary, BehavioralBias
+│   │   ├── market/                   # SP500 charts, RegimePanel, Heatmap, Classifiers
+│   │   ├── analysis/                 # FactorScorecard, Valuation, GeminiInsight
+│   │   └── content/                  # StockNews, ResearchNarrative, ResearchProgress
+│   └── pages/                        # Grouped by domain
+│       ├── auth/                     # Login, Profile
+│       ├── dashboard/                # Dashboard
+│       ├── trading/                  # Trade, TradeHistory, PortfolioList, PortfolioDetail
+│       ├── market/                   # Market, StockDetail, StockComparison
+│       ├── analysis/                 # Analysis, Screener, Prediction
+│       ├── social/                   # Groups, Leaderboard, Badges
+│       ├── content/                  # News, Research
+│       └── watchlist/                # Watchlist
+│
+├── docs/                             # Architecture docs, roadmap, knowledge base
+├── api/index.ts                      # Vercel serverless adapter
+└── n8n/                              # n8n webhook integration workflows
 ```
 
 ## Database Schema
@@ -231,7 +207,7 @@ npm run dev:client   # Vite on http://localhost:5173
 ### Other Commands
 
 ```bash
-npm test -w server              # Run 135 tests (auth, TA, feature engineering, prediction utils)
+npm test -w server              # Run 280 tests (auth, trading, tax, TA, prediction, validation)
 npm run lint                    # ESLint
 npm run build:server            # Compile server
 npm run build:client            # Vite production build
