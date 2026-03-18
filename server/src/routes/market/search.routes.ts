@@ -14,7 +14,7 @@ router.get('/', async (req: Request, res: Response) => {
       return;
     }
 
-    const result = await yf.search(q, { quotesCount: 15, newsCount: 0 });
+    const result = await yf.search(q, { quotesCount: 15, newsCount: 0 }, { validateResult: false });
     const quotes = (result.quotes || [])
       .filter((r: any) => r.quoteType === 'EQUITY' && r.exchange && r.symbol)
       .slice(0, 15)
