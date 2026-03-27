@@ -4,6 +4,7 @@
 
 import { Router, Request, Response } from 'express';
 import YahooFinance from 'yahoo-finance2';
+import redis from '../../redis.js';
 
 const yf = new YahooFinance();
 const router = Router();
@@ -152,9 +153,21 @@ function detectRegime(closes: number[]): RegimeResult {
 
 router.get('/', async (_req: Request, res: Response) => {
   try {
+    // L1: in-memory
     if (regimeCache && Date.now() - regimeCache.fetchedAt < CACHE_TTL) {
       res.json(regimeCache.data);
       return;
+    }
+
+    // L2: Redis (10 min TTL)
+    if (redis) {
+      const cached = await redis.get('market:regime').catch(() => null);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        regimeCache = { data: parsed, fetchedAt: Date.now() };
+        res.json(parsed);
+        return;
+      }
     }
 
     const startDate = new Date();
@@ -179,6 +192,10 @@ router.get('/', async (_req: Request, res: Response) => {
 
     const result = detectRegime(closes);
     regimeCache = { data: result, fetchedAt: Date.now() };
+
+    if (redis) {
+      await redis.set('market:regime', JSON.stringify(result), 'EX', 600).catch(() => {});
+    }
 
     res.json(result);
   } catch (err) {

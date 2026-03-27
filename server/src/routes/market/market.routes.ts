@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import YahooFinance from 'yahoo-finance2';
 import { getMarketData, MarketEntry } from '../../services/market/marketService.js';
 import { SP500_SECTORS } from '../../services/data/sp500.js';
+import redis from '../../redis.js';
 
 const yf = new YahooFinance();
 
@@ -111,6 +112,38 @@ router.get('/top', async (req: Request, res: Response) => {
   }
 });
 
+// ── GET /api/market/sp500-live — real-time ^GSPC quote ────────
+router.get('/sp500-live', async (_req: Request, res: Response) => {
+  try {
+    // Check Redis cache (30s TTL)
+    if (redis) {
+      const cached = await redis.get('market:sp500-live').catch(() => null);
+      if (cached) { res.json(JSON.parse(cached)); return; }
+    }
+
+    const quotes = await yf.quote(['^GSPC']);
+    const q = Array.isArray(quotes) ? quotes[0] : quotes;
+
+    const result = {
+      price:     Math.round((q.regularMarketPrice ?? 0) * 100) / 100,
+      change:    Math.round((q.regularMarketChange ?? 0) * 100) / 100,
+      changePct: Math.round((q.regularMarketChangePercent ?? 0) * 100) / 100,
+      prevClose: Math.round((q.regularMarketPreviousClose ?? 0) * 100) / 100,
+      marketState: q.marketState ?? 'CLOSED',
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (redis) {
+      await redis.set('market:sp500-live', JSON.stringify(result), 'EX', 30).catch(() => {});
+    }
+
+    res.json(result);
+  } catch (err) {
+    console.error('S&P 500 live quote error:', err);
+    res.status(500).json({ error: 'Failed to fetch S&P 500 live quote' });
+  }
+});
+
 // ── GET /api/market/sp500-chart?period=1M ────────────────────
 let sp500ChartCache: { data: any; period: string; fetchedAt: number } | null = null;
 const SP500_CHART_TTL = 5 * 60 * 1000;
@@ -124,6 +157,7 @@ router.get('/sp500-chart', async (req: Request, res: Response) => {
     const period = (req.query.period as string) || '1M';
     const days = PERIOD_DAYS[period] || 30;
 
+    // L1: in-memory
     if (
       sp500ChartCache &&
       sp500ChartCache.period === period &&
@@ -131,6 +165,18 @@ router.get('/sp500-chart', async (req: Request, res: Response) => {
     ) {
       res.json(sp500ChartCache.data);
       return;
+    }
+
+    // L2: Redis (5 min TTL)
+    const redisKey = `market:sp500-chart:${period}`;
+    if (redis) {
+      const cached = await redis.get(redisKey).catch(() => null);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        sp500ChartCache = { data: parsed, period, fetchedAt: Date.now() };
+        res.json(parsed);
+        return;
+      }
     }
 
     const startDate = new Date();
@@ -155,6 +201,10 @@ router.get('/sp500-chart', async (req: Request, res: Response) => {
 
     const result = { points, period };
     sp500ChartCache = { data: result, period, fetchedAt: Date.now() };
+
+    if (redis) {
+      await redis.set(redisKey, JSON.stringify(result), 'EX', 300).catch(() => {});
+    }
 
     res.json(result);
   } catch (err) {

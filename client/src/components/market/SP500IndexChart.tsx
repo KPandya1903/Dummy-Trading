@@ -29,6 +29,15 @@ interface SP500ChartData {
   period: string;
 }
 
+interface SP500Live {
+  price: number;
+  change: number;
+  changePct: number;
+  prevClose: number;
+  marketState: string;
+  updatedAt: string;
+}
+
 const PERIODS = ['1W', '1M', '3M', '6M', '1Y', '5Y'];
 
 export default function SP500IndexChart() {
@@ -37,14 +46,17 @@ export default function SP500IndexChart() {
   const { data, loading } = useApi<SP500ChartData>(
     '/market/sp500-chart',
     { period },
-    5_000,
+    60_000,
   );
 
+  // Live quote updates every 30s
+  const { data: live } = useApi<SP500Live>('/market/sp500-live', {}, 30_000);
+
   const points = data?.points ?? [];
-  const latest = points.length > 0 ? points[points.length - 1].value : 0;
   const first = points.length > 0 ? points[0].value : 0;
-  const change = latest - first;
-  const changePct = first > 0 ? (change / first) * 100 : 0;
+  const latest = live?.price ?? (points.length > 0 ? points[points.length - 1].value : 0);
+  const change = live?.change ?? (latest - first);
+  const changePct = live?.changePct ?? (first > 0 ? (change / first) * 100 : 0);
   const isPositive = change >= 0;
 
   return (
