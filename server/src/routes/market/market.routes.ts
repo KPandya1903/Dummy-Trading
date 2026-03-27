@@ -134,12 +134,19 @@ router.get('/sp500-live', async (_req: Request, res: Response) => {
     };
 
     if (redis) {
-      await redis.set('market:sp500-live', JSON.stringify(result), 'EX', 30).catch(() => {});
+      await redis.set('market:sp500-live', JSON.stringify(result), 'EX', 300).catch(() => {});
     }
 
     res.json(result);
   } catch (err) {
     console.error('S&P 500 live quote error:', err);
+
+    // Fall back to stale Redis data if fetch failed
+    if (redis) {
+      const stale = await redis.get('market:sp500-live').catch(() => null);
+      if (stale) { res.json(JSON.parse(stale)); return; }
+    }
+
     res.status(500).json({ error: 'Failed to fetch S&P 500 live quote' });
   }
 });

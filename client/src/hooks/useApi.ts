@@ -30,7 +30,10 @@ export default function useApi<T>(
       const { data: result } = await apiClient.get(url, { params: parsed });
       setData(result);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Request failed');
+      // Only set error if we have no existing data (don't blank out stale data on poll failure)
+      if (data === null) {
+        setError(err.response?.data?.error || 'Request failed');
+      }
     } finally {
       setLoading(false);
     }
