@@ -39,7 +39,7 @@ router.get('/', async (req: Request, res: Response) => {
     } = req.query as Record<string, string>;
 
     const data       = await getMarketData();
-    const fundMap    = getFundamentals();
+    const fundMap    = await getFundamentals();
 
     // ── Merge market data with fundamentals ───────────────────
     const merged = data.map((e) => {

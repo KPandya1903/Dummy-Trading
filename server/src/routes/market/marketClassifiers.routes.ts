@@ -38,7 +38,7 @@ function toStock(e: MarketEntry, metric: number | null, metricLabel: string): Cl
 router.get('/', async (_req: Request, res: Response) => {
   try {
     const data = await getMarketData();
-    const fundamentals = getFundamentals();
+    const fundamentals = await getFundamentals();
 
     const classifiers: Classifier[] = [];
 

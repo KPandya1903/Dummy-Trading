@@ -1,5 +1,6 @@
 import YahooFinance from 'yahoo-finance2';
 import { SP500_TICKERS, SP500_BY_TICKER } from '../data/sp500.js';
+import redis from '../../redis.js';
 
 const yf = new YahooFinance();
 
@@ -65,6 +66,26 @@ interface AlpacaSnapshot {
   minuteBar: AlpacaBar;
 }
 
+// ── Redis helpers ────────────────────────────────────────────
+async function getFromRedis<T>(key: string): Promise<T | null> {
+  if (!redis) return null;
+  try {
+    const raw = await redis.get(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function setInRedis(key: string, data: unknown, ttlSeconds: number): Promise<void> {
+  if (!redis) return;
+  try {
+    await redis.set(key, JSON.stringify(data), 'EX', ttlSeconds);
+  } catch (err) {
+    console.error(`Redis SET ${key} failed:`, err);
+  }
+}
+
 // ── Fetch market caps from Yahoo (background, 24h cache) ────
 export async function warmMarketCaps(): Promise<void> {
   if (marketCapCache && Date.now() - marketCapCache.fetchedAt < MCAP_CACHE_TTL) {
@@ -89,6 +110,7 @@ export async function warmMarketCaps(): Promise<void> {
   }
 
   marketCapCache = { data: caps, fetchedAt: Date.now() };
+  await setInRedis('market:caps', Object.fromEntries(caps), 86400);
   console.log(`Market cap cache warmed: ${caps.size} tickers`);
 }
 
@@ -207,11 +229,31 @@ export async function warmFundamentals(): Promise<void> {
   }
 
   fundamentalsCache = { data, fetchedAt: Date.now() };
+  await setInRedis('market:fundamentals', Object.fromEntries(data), 86400);
   console.log(`Fundamentals cache warmed: ${data.size} tickers`);
 }
 
-export function getFundamentals(): Map<string, FundamentalsEntry> {
-  return fundamentalsCache?.data ?? new Map();
+export async function getFundamentals(): Promise<Map<string, FundamentalsEntry>> {
+  if (fundamentalsCache?.data) return fundamentalsCache.data;
+
+  const cached = await getFromRedis<Record<string, FundamentalsEntry>>('market:fundamentals');
+  if (cached) {
+    const map = new Map(Object.entries(cached));
+    fundamentalsCache = { data: map, fetchedAt: Date.now() };
+    return map;
+  }
+
+  return new Map();
+}
+
+// ── Hydrate in-memory market cap cache from Redis ───────────
+async function ensureMarketCaps(): Promise<void> {
+  if (marketCapCache?.data?.size) return;
+  const cached = await getFromRedis<Record<string, number>>('market:caps');
+  if (cached) {
+    marketCapCache = { data: new Map(Object.entries(cached)), fetchedAt: Date.now() };
+    console.log(`Market caps hydrated from Redis: ${marketCapCache.data.size} tickers`);
+  }
 }
 
 // ── Public API ──────────────────────────────────────────────
@@ -220,10 +262,21 @@ export async function getMarketData(): Promise<MarketEntry[]> {
     return priceCache.data;
   }
 
+  // Try Redis L2 cache (30s TTL) before hitting APIs
+  const redisPrices = await getFromRedis<MarketEntry[]>('market:prices');
+  if (redisPrices && redisPrices.length > 0) {
+    priceCache = { data: redisPrices, fetchedAt: Date.now() };
+    return redisPrices;
+  }
+
+  // Ensure market caps are loaded before fetching prices (Alpaca needs them)
+  await ensureMarketCaps();
+
   const useAlpaca = !!(ALPACA_KEY && ALPACA_SECRET);
   const entries = useAlpaca ? await fetchAlpacaPrices() : await fetchYahooPrices();
 
   priceCache = { data: entries, fetchedAt: Date.now() };
+  await setInRedis('market:prices', entries, 30);
   console.log(`Market cache warmed (${useAlpaca ? 'Alpaca' : 'Yahoo'}): ${entries.length} tickers`);
   return entries;
 }
