@@ -69,11 +69,15 @@ export const SP500: SP500Constituent[] = [
   { ticker: 'PLTR', name: 'Palantir Technologies', sector: 'Information Technology' },
   { ticker: 'APP', name: 'AppLovin', sector: 'Information Technology' },
   { ticker: 'WDAY', name: 'Workday', sector: 'Information Technology' },
-  { ticker: 'PAYC', name: 'Paycom Software', sector: 'Information Technology' },
+  { ticker: 'ACN', name: 'Accenture', sector: 'Information Technology' },
+  { ticker: 'CIEN', name: 'Ciena', sector: 'Information Technology' },
+  { ticker: 'COHR', name: 'Coherent Corp.', sector: 'Information Technology' },
+  { ticker: 'LITE', name: 'Lumentum', sector: 'Information Technology' },
+  { ticker: 'NTAP', name: 'NetApp', sector: 'Information Technology' },
+  { ticker: 'Q', name: 'Qnity Electronics', sector: 'Information Technology' },
   { ticker: 'SNDK', name: 'SanDisk', sector: 'Information Technology' },
   { ticker: 'WDC', name: 'Western Digital', sector: 'Information Technology' },
   { ticker: 'STX', name: 'Seagate Technology', sector: 'Information Technology' },
-  { ticker: 'TECH', name: 'Bio-Techne', sector: 'Information Technology' },
 
   // ── Health Care ────────────────────────────────────────────
   { ticker: 'LLY', name: 'Eli Lilly', sector: 'Health Care' },
@@ -122,7 +126,6 @@ export const SP500: SP500Constituent[] = [
   { ticker: 'CNC', name: 'Centene', sector: 'Health Care' },
   { ticker: 'MRNA', name: 'Moderna', sector: 'Health Care' },
   { ticker: 'VTRS', name: 'Viatris', sector: 'Health Care' },
-  { ticker: 'MOH', name: 'Molina Healthcare', sector: 'Health Care' },
   { ticker: 'LH', name: 'Labcorp Holdings', sector: 'Health Care' },
   { ticker: 'DGX', name: 'Quest Diagnostics', sector: 'Health Care' },
   { ticker: 'HSIC', name: 'Henry Schein', sector: 'Health Care' },
@@ -212,6 +215,10 @@ export const SP500: SP500Constituent[] = [
   { ticker: 'EFX', name: 'Equifax', sector: 'Financials' },
   { ticker: 'BR', name: 'Broadridge Financial', sector: 'Financials' },
   { ticker: 'MRSH', name: 'Marsh McLennan', sector: 'Financials' },
+  { ticker: 'AIG', name: 'American International Group', sector: 'Financials' },
+  { ticker: 'EG', name: 'Everest Group', sector: 'Financials' },
+  { ticker: 'PYPL', name: 'PayPal', sector: 'Financials' },
+  { ticker: 'XYZ', name: 'Block Inc.', sector: 'Financials' },
 
   // ── Consumer Discretionary ─────────────────────────────────
   { ticker: 'AMZN', name: 'Amazon', sector: 'Consumer Discretionary' },
@@ -241,7 +248,6 @@ export const SP500: SP500Constituent[] = [
   { ticker: 'GPC', name: 'Genuine Parts', sector: 'Consumer Discretionary' },
   { ticker: 'DDOG', name: 'Datadog', sector: 'Consumer Discretionary' },
   { ticker: 'TGT', name: 'Target', sector: 'Consumer Discretionary' },
-  { ticker: 'EA', name: 'Electronic Arts', sector: 'Consumer Discretionary' },
   { ticker: 'DAL', name: 'Delta Air Lines', sector: 'Consumer Discretionary' },
   { ticker: 'GRMN', name: 'Garmin', sector: 'Consumer Discretionary' },
   { ticker: 'LEN', name: 'Lennar', sector: 'Consumer Discretionary' },
@@ -272,9 +278,8 @@ export const SP500: SP500Constituent[] = [
   { ticker: 'HAS', name: 'Hasbro', sector: 'Consumer Discretionary' },
   { ticker: 'BLDR', name: 'Builders FirstSource', sector: 'Consumer Discretionary' },
   { ticker: 'TTD', name: 'The Trade Desk', sector: 'Consumer Discretionary' },
-  { ticker: 'LW', name: 'Lamb Weston', sector: 'Consumer Discretionary' },
+  { ticker: 'EBAY', name: 'eBay', sector: 'Consumer Discretionary' },
   { ticker: 'TKO', name: 'TKO Group Holdings', sector: 'Consumer Discretionary' },
-  { ticker: 'MTCH', name: 'Match Group', sector: 'Consumer Discretionary' },
 
   // ── Communication Services ─────────────────────────────────
   { ticker: 'GOOGL', name: 'Alphabet (Class A)', sector: 'Communication Services' },
@@ -288,13 +293,14 @@ export const SP500: SP500Constituent[] = [
   { ticker: 'T', name: 'AT&T', sector: 'Communication Services' },
   { ticker: 'CHTR', name: 'Charter Communications', sector: 'Communication Services' },
   { ticker: 'EA', name: 'Electronic Arts', sector: 'Communication Services' },
+  { ticker: 'SATS', name: 'EchoStar', sector: 'Communication Services' },
+  { ticker: 'PSKY', name: 'Paramount Skydance', sector: 'Communication Services' },
   { ticker: 'TTWO', name: 'Take-Two Interactive', sector: 'Communication Services' },
   { ticker: 'LYV', name: 'Live Nation Entertainment', sector: 'Communication Services' },
   { ticker: 'OMC', name: 'Omnicom Group', sector: 'Communication Services' },
   { ticker: 'WBD', name: 'Warner Bros. Discovery', sector: 'Communication Services' },
   { ticker: 'FOXA', name: 'Fox Corporation (A)', sector: 'Communication Services' },
   { ticker: 'FOX', name: 'Fox Corporation (B)', sector: 'Communication Services' },
-  { ticker: 'IPG', name: 'Interpublic Group', sector: 'Communication Services' },
   { ticker: 'NWS', name: 'News Corp (B)', sector: 'Communication Services' },
   { ticker: 'NWSA', name: 'News Corp (A)', sector: 'Communication Services' },
 
@@ -342,10 +348,7 @@ export const SP500: SP500Constituent[] = [
   { ticker: 'CPRT', name: 'Copart', sector: 'Industrials' },
   { ticker: 'DOV', name: 'Dover Corporation', sector: 'Industrials' },
   { ticker: 'JCI', name: 'Johnson Controls', sector: 'Industrials' },
-  { ticker: 'SHW', name: 'Sherwin-Williams', sector: 'Industrials' },
   { ticker: 'TEL', name: 'TE Connectivity', sector: 'Industrials' },
-  { ticker: 'ECL', name: 'Ecolab', sector: 'Industrials' },
-  { ticker: 'MNST', name: 'Monster Beverage', sector: 'Industrials' },
   { ticker: 'HUBB', name: 'Hubbell', sector: 'Industrials' },
   { ticker: 'TDY', name: 'Teledyne Technologies', sector: 'Industrials' },
   { ticker: 'XYL', name: 'Xylem', sector: 'Industrials' },
@@ -361,7 +364,6 @@ export const SP500: SP500Constituent[] = [
   { ticker: 'SWK', name: 'Stanley Black & Decker', sector: 'Industrials' },
   { ticker: 'ALLE', name: 'Allegion', sector: 'Industrials' },
   { ticker: 'AOS', name: 'A. O. Smith', sector: 'Industrials' },
-  { ticker: 'DAL', name: 'Delta Air Lines', sector: 'Industrials' },
   { ticker: 'LDOS', name: 'Leidos Holdings', sector: 'Industrials' },
   { ticker: 'HII', name: 'Huntington Ingalls', sector: 'Industrials' },
   { ticker: 'TXT', name: 'Textron', sector: 'Industrials' },
@@ -372,14 +374,12 @@ export const SP500: SP500Constituent[] = [
   { ticker: 'EXPD', name: 'Expeditors International', sector: 'Industrials' },
   { ticker: 'GNRC', name: 'Generac Holdings', sector: 'Industrials' },
   { ticker: 'VLTO', name: 'Veralto', sector: 'Industrials' },
-  { ticker: 'HAL', name: 'Halliburton', sector: 'Industrials' },
   { ticker: 'JBL', name: 'Jabil Inc.', sector: 'Industrials' },
   { ticker: 'CSGP', name: 'CoStar Group', sector: 'Industrials' },
   { ticker: 'DD', name: 'DuPont', sector: 'Industrials' },
   { ticker: 'EXE', name: 'Expand Energy', sector: 'Industrials' },
-  { ticker: 'STLD', name: 'Steel Dynamics', sector: 'Industrials' },
-  { ticker: 'SW', name: 'Smurfit Westrock', sector: 'Industrials' },
-  { ticker: 'IP', name: 'International Paper', sector: 'Industrials' },
+  { ticker: 'ROP', name: 'Roper Technologies', sector: 'Industrials' },
+  { ticker: 'VRT', name: 'Vertiv', sector: 'Industrials' },
 
   // ── Consumer Staples ───────────────────────────────────────
   { ticker: 'WMT', name: 'Walmart', sector: 'Consumer Staples' },
@@ -412,7 +412,6 @@ export const SP500: SP500Constituent[] = [
   { ticker: 'HRL', name: 'Hormel Foods', sector: 'Consumer Staples' },
   { ticker: 'CPB', name: 'Campbell Soup', sector: 'Consumer Staples' },
   { ticker: 'TAP', name: 'Molson Coors', sector: 'Consumer Staples' },
-  { ticker: 'CTVA', name: 'Corteva', sector: 'Consumer Staples' },
   { ticker: 'BF.B', name: 'Brown-Forman', sector: 'Consumer Staples' },
 
   // ── Energy ─────────────────────────────────────────────────
@@ -470,6 +469,7 @@ export const SP500: SP500Constituent[] = [
   { ticker: 'NRG', name: 'NRG Energy', sector: 'Utilities' },
   { ticker: 'AES', name: 'AES Corporation', sector: 'Utilities' },
   { ticker: 'PNW', name: 'Pinnacle West Capital', sector: 'Utilities' },
+  { ticker: 'AEE', name: 'Ameren', sector: 'Utilities' },
 
   // ── Real Estate ────────────────────────────────────────────
   { ticker: 'PLD', name: 'Prologis', sector: 'Real Estate' },
@@ -500,6 +500,7 @@ export const SP500: SP500Constituent[] = [
   { ticker: 'BXP', name: 'BXP Inc.', sector: 'Real Estate' },
   { ticker: 'FRT', name: 'Federal Realty Trust', sector: 'Real Estate' },
   { ticker: 'ARE', name: 'Alexandria Real Estate', sector: 'Real Estate' },
+  { ticker: 'CBRE', name: 'CBRE Group', sector: 'Real Estate' },
 
   // ── Materials ──────────────────────────────────────────────
   { ticker: 'LIN', name: 'Linde', sector: 'Materials' },
@@ -523,7 +524,6 @@ export const SP500: SP500Constituent[] = [
   { ticker: 'MAS', name: 'Masco', sector: 'Materials' },
   { ticker: 'WY', name: 'Weyerhaeuser', sector: 'Materials' },
   { ticker: 'ALB', name: 'Albemarle', sector: 'Materials' },
-  { ticker: 'CE', name: 'Celanese', sector: 'Materials' },
   { ticker: 'LYB', name: 'LyondellBasell', sector: 'Materials' },
   { ticker: 'WST', name: 'West Pharmaceutical', sector: 'Materials' },
   { ticker: 'STLD', name: 'Steel Dynamics', sector: 'Materials' },
