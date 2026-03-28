@@ -115,7 +115,7 @@ router.get('/top', async (req: Request, res: Response) => {
 // ── GET /api/market/sp500-live — real-time ^GSPC quote ────────
 router.get('/sp500-live', async (_req: Request, res: Response) => {
   try {
-    // Check Redis cache (30s TTL)
+    // Check Redis cache (5 min TTL — prevents Yahoo timeouts on cold starts)
     if (redis) {
       const cached = await redis.get('market:sp500-live').catch(() => null);
       if (cached) { res.json(JSON.parse(cached)); return; }

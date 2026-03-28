@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import apiClient from '../apiClient';
 
 /**
@@ -18,20 +18,22 @@ export default function useApi<T>(
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const hasData = useRef(false);
 
   const serializedParams = params ? JSON.stringify(params) : '';
 
   const fetch = useCallback(async () => {
     if (!url) return;
-    setLoading((prev) => data === null ? true : prev);
+    setLoading((prev) => hasData.current ? prev : true);
     setError('');
     try {
       const parsed = serializedParams ? JSON.parse(serializedParams) : undefined;
       const { data: result } = await apiClient.get(url, { params: parsed });
       setData(result);
+      hasData.current = true;
     } catch (err: any) {
       // Only set error if we have no existing data (don't blank out stale data on poll failure)
-      if (data === null) {
+      if (!hasData.current) {
         setError(err.response?.data?.error || 'Request failed');
       }
     } finally {

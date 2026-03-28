@@ -49,8 +49,8 @@ export default function SP500IndexChart() {
     60_000,
   );
 
-  // Live quote updates every 30s
-  const { data: live } = useApi<SP500Live>('/market/sp500-live', {}, 30_000);
+  // Live quote updates every 60s (Redis caches for 5 min on backend)
+  const { data: live } = useApi<SP500Live>('/market/sp500-live', {}, 60_000);
 
   const points = data?.points ?? [];
   const first = points.length > 0 ? points[0].value : 0;

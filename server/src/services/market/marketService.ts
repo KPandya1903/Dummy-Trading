@@ -276,7 +276,7 @@ export async function getMarketData(): Promise<MarketEntry[]> {
   const entries = useAlpaca ? await fetchAlpacaPrices() : await fetchYahooPrices();
 
   priceCache = { data: entries, fetchedAt: Date.now() };
-  await setInRedis('market:prices', entries, 30);
+  await setInRedis('market:prices', entries, 10);
   console.log(`Market cache warmed (${useAlpaca ? 'Alpaca' : 'Yahoo'}): ${entries.length} tickers`);
   return entries;
 }
