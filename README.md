@@ -1,4 +1,4 @@
-# Dummy Trading — Educational Stock Portfolio Manager
+# TradeFlow — Educational Stock Portfolio Manager
 
 A full-featured paper trading platform where users get virtual cash, trade stocks with simulated orders, and track portfolio performance. No real money involved — purely educational.
 
