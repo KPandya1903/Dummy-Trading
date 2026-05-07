@@ -10,17 +10,17 @@ A full-featured paper trading platform where users get virtual cash, trade stock
 | Backend | Node.js, Express 4, TypeScript, ESM |
 | Database | PostgreSQL via Prisma ORM (Neon hosted) |
 | ML/AI | TensorFlow.js, trading-signals, regression |
-| LLM | Google Gemini (news), Ollama + DeepSeek-R1 (research) |
-| Auth | Google OAuth 2.0 (`@react-oauth/google`) |
+| LLM | Groq (cloud, llama-3.3-70b), Ollama (local, primary) |
+| Auth | Email/password + Google OAuth 2.0 (`@react-oauth/google`) |
 | Market Data | Yahoo Finance (quotes/history), Alpaca (real-time prices) |
 | Monorepo | npm workspaces (`server/` + `client/`) |
 
 ## Features
 
 ### Authentication
+- Email/password login with bcrypt password hashing
 - Google OAuth — one-click sign-in, auto-creates account from Google profile
-- No email/password forms — Google-only for simplicity and security
-- JWT sessions issued on successful Google verification
+- JWT sessions issued on successful sign-in
 
 ### Trading & Portfolios
 - Multiple portfolios per user with $100k starting cash
@@ -65,13 +65,13 @@ A full-featured paper trading platform where users get virtual cash, trade stock
 - 7/14/30-day forecast horizons
 
 ### AI News & Sentiment
-- Gemini-powered stock news summaries with sentiment analysis
+- AI-powered stock news summaries with sentiment analysis (Groq)
 - Context-aware AI insights (technical, fundamental, prediction, news)
 
 ### Deep Research Reports
 - 10-dimension research pipeline (earnings, product launches, sector trends, macro, competitive landscape, supply chain, regulatory, social sentiment, analyst ratings, geopolitical)
 - Web scraping from Google News RSS, Reddit, Finviz
-- Local LLM analysis via Ollama + DeepSeek-R1 8B
+- LLM analysis via Ollama (local, primary) with Groq cloud fallback
 - Two-pass reasoning: Analyze → Refine per dimension
 - Executive summary synthesis with algorithmic fallback
 - Real-time SSE progress streaming
@@ -180,11 +180,11 @@ User model fields: `id`, `email`, `passwordHash?`, `name?`, `avatarUrl?`, `googl
 # server/.env
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/paper_trading?schema=public"
 JWT_SECRET="your-secret-key"
-GEMINI_API_KEY="your-gemini-key"          # Optional: for AI news
-ALPACA_API_KEY="your-alpaca-key"          # Optional: for real-time prices
+ALPACA_API_KEY="your-alpaca-key"          # Optional: real-time prices
 ALPACA_API_SECRET="your-alpaca-secret"
-OLLAMA_URL="http://localhost:11434"       # Optional: for research
-OLLAMA_MODEL="deepseek-r1:8b"            # Optional: for research
+GROQ_API_KEY="your-groq-key"             # Optional: AI news + research (free at console.groq.com)
+OLLAMA_BASE_URL="http://localhost:11434"  # Optional: local LLM (primary, Groq is fallback)
+OLLAMA_MODEL="llama3:latest"             # Optional: any model pulled via `ollama pull`
 
 # client/.env
 VITE_GOOGLE_CLIENT_ID="your-google-oauth-client-id"
