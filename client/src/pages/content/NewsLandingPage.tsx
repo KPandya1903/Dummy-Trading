@@ -64,7 +64,7 @@ export default function NewsLandingPage() {
         Stock News
       </Typography>
       <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-        AI-powered real-time news and sentiment analysis for any stock, powered by Gemini with Google Search grounding.
+        AI-powered real-time news and sentiment analysis for any stock.
       </Typography>
 
       {/* Search */}
