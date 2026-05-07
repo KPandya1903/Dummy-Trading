@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Typography, Alert, Paper, Box } from '@mui/material';
+import { Button, Typography, Alert, Paper, Box, TextField, Divider } from '@mui/material';
 import { Google as GoogleIcon } from '@mui/icons-material';
 import { useGoogleLogin } from '@react-oauth/google';
 import apiClient from '../../apiClient';
@@ -8,6 +8,9 @@ import apiClient from '../../apiClient';
 export default function LoginPage() {
   const navigate = useNavigate();
   const [error, setError] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
@@ -26,6 +29,22 @@ export default function LoginPage() {
     flow: 'implicit',
   });
 
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const { data } = await apiClient.post('/auth/login', { email, password });
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('userId', String(data.userId));
+      navigate('/');
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Invalid email or password');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Paper sx={{ p: 5, mt: 10, maxWidth: 400, mx: 'auto', textAlign: 'center' }}>
       <Typography variant="h5" color="primary.main" fontWeight={700} sx={{ mb: 1 }}>
@@ -40,6 +59,43 @@ export default function LoginPage() {
           {error}
         </Alert>
       )}
+
+      <Box component="form" onSubmit={handleEmailLogin} sx={{ mb: 2 }}>
+        <TextField
+          label="Email"
+          type="email"
+          fullWidth
+          size="small"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          sx={{ mb: 1.5 }}
+          required
+        />
+        <TextField
+          label="Password"
+          type="password"
+          fullWidth
+          size="small"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          sx={{ mb: 2 }}
+          required
+        />
+        <Button
+          type="submit"
+          variant="contained"
+          fullWidth
+          size="large"
+          disabled={loading}
+          sx={{ py: 1.5 }}
+        >
+          {loading ? 'Signing in…' : 'Sign In'}
+        </Button>
+      </Box>
+
+      <Divider sx={{ my: 2 }}>
+        <Typography variant="caption" color="text.disabled">or</Typography>
+      </Divider>
 
       <Button
         variant="outlined"
@@ -59,7 +115,7 @@ export default function LoginPage() {
 
       <Box mt={3}>
         <Typography variant="caption" color="text.disabled">
-          No account needed — your profile is created automatically
+          Demo: kunj@demo.com / Demo1234!
         </Typography>
       </Box>
     </Paper>
